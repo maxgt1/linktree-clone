@@ -171,49 +171,51 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Mockup Móvil - Sistema de Máscara Definitivo */}
+        {/* Mockup Móvil - Sistema de Máscara Definitivo (Overlay Bezel) */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
-            {/* Chasis Exterior con Recorte */}
-            <div className="relative w-[310px] h-[630px] bg-[#0a0a0a] rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] p-[12px] overflow-hidden border border-white/5">
+            {/* Contenedor del Dispositivo */}
+            <div className="relative w-[300px] h-[610px] bg-[#0a0a0a] rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden" style={{ isolation: 'isolate' }}>
               
-              {/* Notch - z-50 */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-8 bg-[#0a0a0a] rounded-b-[1.8rem] z-50 flex items-center justify-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-[#1a1a1a]"></div>
-                <div className="w-12 h-1.5 rounded-full bg-[#1a1a1a]"></div>
-              </div>
-
-              {/* Pantalla con Overflow Hidden Forzado */}
-              <div className="w-full h-full rounded-[2.8rem] overflow-hidden bg-white relative">
-                {/* Contenedor del Iframe con aislamiento */}
-                <div className="w-full h-full relative overflow-hidden" style={{ borderRadius: 'inherit' }}>
+              {/* PANTALLA: El recorte se aplica mediante máscara webkit y overflow */}
+              <div className="absolute inset-[10px] rounded-[2.6rem] bg-white overflow-hidden" 
+                   style={{ 
+                     maskImage: '-webkit-radial-gradient(white, black)',
+                     WebkitMaskImage: '-webkit-radial-gradient(white, black)',
+                   }}>
+                
+                {/* Iframe Contenedor */}
+                <div className="w-full h-full relative overflow-hidden">
                   <iframe 
                     src="/?preview=true" 
                     className="absolute inset-0 w-[125%] h-[125%] border-none select-none pointer-events-none" 
                     style={{ 
                       transform: 'scale(0.8)', 
                       transformOrigin: 'top left',
-                      borderRadius: 'inherit'
                     }}
                     title="Live Preview" 
                   />
-                  {/* Capa de brillo sobre la pantalla */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/10 pointer-events-none"></div>
                 </div>
               </div>
 
-              {/* Marco Superpuesto para pulir el recorte (Bisel Interno) */}
-              <div className="absolute inset-0 border-[12px] border-[#0a0a0a] rounded-[3.5rem] pointer-events-none z-40"></div>
+              {/* MARCO DE SUPERPOSICIÓN (BEZEL): Esta capa se sitúa POR ENCIMA del iframe para tapar sus esquinas físicamente */}
+              <div className="absolute inset-0 border-[10px] border-[#0a0a0a] rounded-[3.5rem] pointer-events-none z-20"></div>
               
-              {/* Reflejos del chasis */}
-              <div className="absolute -left-1 top-24 w-1.5 h-12 bg-[#222] rounded-r-full z-20"></div>
-              <div className="absolute -right-1 top-32 w-1.5 h-24 bg-[#222] rounded-l-full z-20"></div>
+              {/* Notch - Encima de todo */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0a0a0a] rounded-b-[1.5rem] z-30 flex items-center justify-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#1a1a1a]"></div>
+                <div className="w-10 h-1 rounded-full bg-[#1a1a1a]"></div>
+              </div>
+
+              {/* Detalles Estéticos */}
+              <div className="absolute -left-[2px] top-24 w-[3px] h-10 bg-[#222] rounded-r-sm z-30"></div>
+              <div className="absolute -right-[2px] top-32 w-[3px] h-16 bg-[#222] rounded-l-sm z-30"></div>
             </div>
             
-            <p className="mt-8 text-sm font-bold text-gray-400 flex items-center gap-2 tracking-wide uppercase opacity-80">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-              Vista previa en tiempo real
-            </p>
+            <div className="mt-8 flex items-center gap-3 px-5 py-2.5 bg-white rounded-full shadow-lg border border-gray-100">
+               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+               <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Vista previa activa</span>
+            </div>
           </div>
         </div>
 
