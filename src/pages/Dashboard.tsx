@@ -171,21 +171,21 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Mockup Móvil - Rediseño con Máscara Superior */}
+        {/* Mockup Móvil - Rediseño con Máscara Superior Reforzada */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
-            {/* Contenedor Principal del Dispositivo */}
-            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 p-[10px]">
+            {/* Chasis del Dispositivo */}
+            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 p-[12px] flex items-center justify-center">
               
-              {/* Notch superior - z-30 para estar sobre el contenido */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f0f0f] rounded-b-[1.5rem] z-30"></div>
+              {/* Notch superior - z-40 */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f0f0f] rounded-b-[1.5rem] z-40"></div>
               
-              {/* MARCO SUPERPUESTO - Esta es la clave para que no se vean las esquinas */}
-              <div className="absolute inset-0 border-[10px] border-[#0f0f0f] rounded-[3.8rem] pointer-events-none z-20"></div>
+              {/* MARCO SUPERPUESTO (BISSEL) - z-30 para forzar el recorte visual */}
+              <div className="absolute inset-0 border-[12px] border-[#0f0f0f] rounded-[3.8rem] pointer-events-none z-30"></div>
               
-              {/* Pantalla / Contenido (z-10) */}
-              <div className="w-full h-full rounded-[3rem] overflow-hidden bg-white relative z-10">
-                <div className="w-full h-full relative" style={{ isolation: 'isolate' }}>
+              {/* Pantalla con recorte real por overflow e isolation (z-10) */}
+              <div className="w-full h-full rounded-[2.8rem] overflow-hidden bg-white relative z-10" style={{ isolation: 'isolate' }}>
+                <div className="w-full h-full relative overflow-hidden">
                   <iframe 
                     src="/?preview=true" 
                     className="absolute inset-0 w-[125%] h-[125%] border-none select-none pointer-events-none" 
@@ -198,10 +198,10 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Detalles estéticos adicionales del chasis */}
-              <div className="absolute -left-1 top-24 w-1 h-12 bg-gray-800 rounded-r-full z-20"></div>
-              <div className="absolute -right-1 top-24 w-1 h-20 bg-gray-800 rounded-l-full z-20"></div>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-30"></div>
+              {/* Botones laterales y detalles */}
+              <div className="absolute -left-1 top-24 w-1.5 h-12 bg-gray-900 rounded-r-full z-20"></div>
+              <div className="absolute -right-1 top-24 w-1.5 h-20 bg-gray-900 rounded-l-full z-20"></div>
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-28 h-1.5 bg-white/10 rounded-full z-40"></div>
             </div>
             
             <p className="mt-6 text-sm font-bold text-gray-400 flex items-center gap-2 tracking-wide uppercase">
