@@ -6,6 +6,7 @@ import type { RecordModel } from 'pocketbase';
 
 interface Link {
   id: string;
+  pbId?: string;
   title: string;
   url: string;
   isActive: boolean;
@@ -60,6 +61,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
       setLinks(records.map(r => ({
         id: r.id,
+        pbId: r.id,
         title: r.title,
         url: r.url,
         isActive: r.is_active,
@@ -69,7 +71,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     const record = pb.authStore.record;
     if (!record) return;
     setUser(record);
@@ -89,7 +91,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setSocials(parsed);
       } catch {}
     }
-    fetchLinks();
+    await fetchLinks();
   };
 
   useEffect(() => {
@@ -118,7 +120,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       url: 'https://ejemplo.com',
       isActive: true,
     };
-    setLinks(prev => [newLink, ...prev]);
+    setLinks(prev => [...prev, newLink]);
   };
 
   const deleteLink = (id: string) => {
@@ -131,18 +133,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userId = pb.authStore.record?.id;
       const existing = await pb.collection('links').getFullList({ filter: `user = "${userId}"` });
-      for (const record of existing) {
-        await pb.collection('links').delete(record.id);
-      }
+      const existingIds = new Set(existing.map(r => r.id));
+      const updatedLinks: Link[] = [];
+
       for (const link of links) {
-        await pb.collection('links').create({
-          title: link.title,
-          url: link.url,
-          is_active: link.isActive,
-          user: userId,
-        });
+        if (link.pbId) {
+          await pb.collection('links').update(link.pbId, {
+            title: link.title,
+            url: link.url,
+            is_active: link.isActive,
+          });
+          updatedLinks.push({ ...link, id: link.pbId, pbId: link.pbId });
+        } else {
+          const created = await pb.collection('links').create({
+            title: link.title,
+            url: link.url,
+            is_active: link.isActive,
+            user: userId,
+          });
+          updatedLinks.push({ ...link, id: created.id, pbId: created.id });
+        }
       }
-      await fetchLinks();
+
+      for (const record of existing) {
+        if (!links.some(l => l.pbId === record.id)) {
+          await pb.collection('links').delete(record.id);
+        }
+      }
+
+      setLinks(updatedLinks);
+
       const userData: Record<string, any> = {
         name: profile.name,
         bio: profile.bio,

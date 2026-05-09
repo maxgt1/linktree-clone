@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving, avatarFile, setAvatarFile } = useAppContext();
+  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving, avatarFile, setAvatarFile, user } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -262,27 +262,42 @@ const Dashboard = () => {
 
       {/* Persistence Bar - FLOATING SAVE BUTTON */}
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
-        <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between">
+        <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-2">
           <div className="flex items-center space-x-3 ml-4">
             <div className={`w-2 h-2 rounded-full ${saving ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></div>
             <span className="text-sm font-bold text-gray-500">
               {saving ? 'Sincronizando...' : 'Cambios listos para guardar'}
             </span>
           </div>
-          <button 
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white px-8 py-3 rounded-2xl font-black flex items-center space-x-2 transition-all transform active:scale-95 min-w-[160px] justify-center"
-          >
-            {saving ? (
-              <Loader2 className="animate-spin" size={20} />
-            ) : (
-              <>
-                <Save size={20} />
-                <span>Guardar</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const url = `${window.location.origin}/u/${user?.id}`;
+                navigator.clipboard.writeText(url);
+                toast.success('¡Enlace público copiado!', {
+                  style: { borderRadius: '1rem', background: '#333', color: '#fff' },
+                });
+              }}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-3 rounded-2xl transition-all"
+              title="Copiar enlace público"
+            >
+              <Share2 size={20} />
+            </button>
+            <button 
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white px-8 py-3 rounded-2xl font-black flex items-center space-x-2 transition-all transform active:scale-95 min-w-[160px] justify-center"
+            >
+              {saving ? (
+                <Loader2 className="animate-spin" size={20} />
+              ) : (
+                <>
+                  <Save size={20} />
+                  <span>Guardar</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

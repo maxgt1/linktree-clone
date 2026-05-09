@@ -5,34 +5,22 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
+import PublicProfile from './pages/PublicProfile';
 import Navbar from './components/Navbar';
 import { AppProvider, useAppContext } from '@/context/AppContext';
 
 function AppContent() {
   const { isLoggedIn } = useAppContext();
 
-  // Si NO está logueado, solo permitimos ver la página de Login
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </div>
-    );
-  }
-
-  // Si ESTÁ logueado, mostramos la App completa con Navbar y navegación
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
       <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        {/* Redirigimos /login a la raíz si ya está logueado */}
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={isLoggedIn ? <Navigate to="/dashboard" replace /> : <Login />} />
+        <Route path="/u/:userId" element={<PublicProfile />} />
+        <Route path="/" element={isLoggedIn ? <Index /> : <Navigate to="/login" replace />} />
+        <Route path="/dashboard" element={isLoggedIn ? <Dashboard /> : <Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to={isLoggedIn ? "/" : "/login"} replace />} />
       </Routes>
     </div>
   );
