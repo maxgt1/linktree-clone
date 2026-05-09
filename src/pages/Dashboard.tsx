@@ -171,17 +171,13 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Mockup Móvil - Corregido como Máscara Real */}
+        {/* Mockup Móvil */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
-            {/* Contenedor del teléfono */}
-            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] p-[10px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 overflow-hidden">
-              {/* Notch superior - más alto z-index */}
+            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] p-[10px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 overflow-hidden z-0">
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f0f0f] rounded-b-[1.5rem] z-50"></div>
               
-              {/* Pantalla / Máscara con overflow hidden absoluto */}
               <div className="w-full h-full rounded-[3.1rem] overflow-hidden bg-white relative z-10">
-                {/* Iframe con zoom ajustado y scroll oculto */}
                 <div className="w-full h-full relative" style={{ isolation: 'isolate' }}>
                   <iframe 
                     src="/?preview=true" 
@@ -189,19 +185,12 @@ const Dashboard = () => {
                     style={{ 
                       transform: 'scale(0.8)', 
                       transformOrigin: 'top left',
-                      msOverflowStyle: 'none',
-                      scrollbarWidth: 'none'
                     }}
                     title="Live Preview" 
                   />
-                  {/* Estilos inline para ocultar scrollbars en el iframe (si es posible) */}
-                  <style>{`
-                    iframe::-webkit-scrollbar { display: none; }
-                  `}</style>
                 </div>
               </div>
               
-              {/* Detalles estéticos del chasis */}
               <div className="absolute -left-1 top-24 w-1 h-12 bg-gray-800 rounded-r-full z-20"></div>
               <div className="absolute -right-1 top-24 w-1 h-20 bg-gray-800 rounded-l-full z-20"></div>
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-50"></div>
@@ -215,8 +204,8 @@ const Dashboard = () => {
 
       </div>
 
-      {/* Floating Save Bar */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
+      {/* Floating Save Bar - Puesto delante de todo con z-[100] */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4">
         <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between">
           <div className="flex items-center space-x-3 ml-4">
             <div className={`w-2 h-2 rounded-full ${saving ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></div>
