@@ -171,33 +171,40 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Mockup Móvil - Corregido */}
+        {/* Mockup Móvil - Corregido como Máscara Real */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
-            {/* Contenedor principal con marco negro absoluto para evitar sangrado */}
-            <div className="relative w-[280px] h-[580px] bg-black rounded-[3rem] p-3 shadow-2xl overflow-hidden ring-1 ring-white/10">
+            {/* Contenedor del teléfono */}
+            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] p-[10px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 overflow-hidden">
+              {/* Notch superior - más alto z-index */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f0f0f] rounded-b-[1.5rem] z-50"></div>
               
-              {/* Notch - Encima de todo */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl z-30"></div>
-              
-              {/* Pantalla - El contenedor real que recorta el iframe */}
-              <div className="w-full h-full rounded-[2.4rem] overflow-hidden bg-white relative z-10 border border-black/5">
-                <iframe 
-                  src="/?preview=true" 
-                  className="w-full h-full border-none select-none pointer-events-none" 
-                  title="Live Preview" 
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    transform: 'scale(1)',
-                    overflow: 'hidden'
-                  }}
-                />
+              {/* Pantalla / Máscara con overflow hidden absoluto */}
+              <div className="w-full h-full rounded-[3.1rem] overflow-hidden bg-white relative z-10">
+                {/* Iframe con zoom ajustado y scroll oculto */}
+                <div className="w-full h-full relative" style={{ isolation: 'isolate' }}>
+                  <iframe 
+                    src="/?preview=true" 
+                    className="absolute inset-0 w-[125%] h-[125%] border-none select-none pointer-events-none" 
+                    style={{ 
+                      transform: 'scale(0.8)', 
+                      transformOrigin: 'top left',
+                      msOverflowStyle: 'none',
+                      scrollbarWidth: 'none'
+                    }}
+                    title="Live Preview" 
+                  />
+                  {/* Estilos inline para ocultar scrollbars en el iframe (si es posible) */}
+                  <style>{`
+                    iframe::-webkit-scrollbar { display: none; }
+                  `}</style>
+                </div>
               </div>
-
-              {/* Botones laterales simulados */}
-              <div className="absolute -left-[2px] top-24 w-1 h-12 bg-gray-800 rounded-r-full z-20"></div>
-              <div className="absolute -right-[2px] top-24 w-1 h-20 bg-gray-800 rounded-l-full z-20"></div>
+              
+              {/* Detalles estéticos del chasis */}
+              <div className="absolute -left-1 top-24 w-1 h-12 bg-gray-800 rounded-r-full z-20"></div>
+              <div className="absolute -right-1 top-24 w-1 h-20 bg-gray-800 rounded-l-full z-20"></div>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-50"></div>
             </div>
             
             <p className="mt-6 text-sm font-bold text-gray-400 flex items-center gap-2 tracking-wide uppercase">
