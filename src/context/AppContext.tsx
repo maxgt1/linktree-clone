@@ -36,7 +36,7 @@ interface AppContextType {
   updateLink: (id: string, updates: Partial<Link>) => void;
   addLink: () => void;
   deleteLink: (id: string) => void;
-  saveLinks: () => Promise<void>;
+  saveLinks: () => Promise<boolean>;
   saving: boolean;
   dirty: boolean;
   updateProfile: (updates: Partial<ProfileData>) => void;
