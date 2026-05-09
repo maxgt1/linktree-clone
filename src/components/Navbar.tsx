@@ -8,7 +8,7 @@ import { useAppContext } from '@/context/AppContext';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isLoggedIn, logout, user } = useAppContext();
+  const { isLoggedIn, logout } = useAppContext();
 
   const handleLogout = async () => {
     await logout();
@@ -18,7 +18,7 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md border-b border-gray-100 z-50">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to={isLoggedIn ? "/dashboard" : "/"} className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
             <span className="text-white font-bold">L</span>
           </div>
@@ -27,9 +27,9 @@ const Navbar = () => {
         
         <div className="flex items-center space-x-2 sm:space-x-4">
           <Link 
-            to={isLoggedIn ? `/u/${user?.id}` : "/"} 
+            to="/" 
             className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-colors ${
-              location.pathname === `/u/${user?.id}` ? 'bg-purple-50 text-purple-600' : 'text-gray-500 hover:bg-gray-50'
+              location.pathname === '/' ? 'bg-purple-50 text-purple-600' : 'text-gray-500 hover:bg-gray-50'
             }`}
           >
             <Eye size={18} />

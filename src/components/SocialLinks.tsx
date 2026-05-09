@@ -13,19 +13,9 @@ const iconMap: Record<string, React.ReactNode> = {
   Mail: <Mail size={20} />,
 };
 
-interface SocialItem {
-  platform: string;
-  url: string;
-  isActive: boolean;
-}
-
-interface SocialLinksProps {
-  items?: SocialItem[];
-}
-
-const SocialLinks = ({ items }: SocialLinksProps) => {
+const SocialLinks = () => {
   const { socials } = useAppContext();
-  const activeSocials = (items || socials).filter(s => s.isActive && s.url !== '');
+  const activeSocials = socials.filter(s => s.isActive && s.url !== '');
 
   return (
     <div className="flex justify-center flex-wrap gap-6 mt-8">
