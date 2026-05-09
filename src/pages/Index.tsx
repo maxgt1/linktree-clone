@@ -64,8 +64,14 @@ const Index = () => {
   };
 
   return (
-    <div className={`min-h-screen ${themeStyles.bg} transition-colors duration-500`}>
-      <div className="max-w-xl mx-auto px-6 pt-24 pb-20"> {/* Se aumentó el padding superior (pt-24) */}
+    <div className={`min-h-screen ${themeStyles.bg} transition-colors duration-500 scrollbar-hide`}>
+      {/* Estilos inline para ocultar scrollbars específicamente en esta vista */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; overflow-y: auto; height: 100vh; }
+      `}} />
+      
+      <div className="max-w-xl mx-auto px-6 pt-24 pb-20">
         
         {/* Profile Section */}
         <div className="flex flex-col items-center text-center mb-12">

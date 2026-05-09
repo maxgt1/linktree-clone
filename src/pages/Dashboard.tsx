@@ -60,11 +60,11 @@ const Dashboard = () => {
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Navigation Sidebar */}
-        <div className="lg:col-span-1 flex lg:flex-col items-center justify-center lg:justify-start space-x-4 lg:space-x-0 lg:space-y-6 bg-white p-3 rounded-[2.5rem] shadow-sm border border-gray-100 h-fit sticky top-24 z-10">
-          <button onClick={() => setActiveTab('links')} className={`p-4 rounded-3xl transition-all ${activeTab === 'links' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><LinkIcon size={22} /></button>
-          <button onClick={() => setActiveTab('profile')} className={`p-4 rounded-3xl transition-all ${activeTab === 'profile' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><UserIcon size={22} /></button>
-          <button onClick={() => setActiveTab('socials')} className={`p-4 rounded-3xl transition-all ${activeTab === 'socials' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><Share2 size={22} /></button>
-          <button onClick={() => setActiveTab('appearance')} className={`p-4 rounded-3xl transition-all ${activeTab === 'appearance' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><Palette size={22} /></button>
+        <div className="lg:col-span-1 flex lg:flex-col items-center justify-center lg:justify-start space-x-4 lg:space-x-0 lg:space-y-6 bg-white p-3 rounded-3xl shadow-sm border border-gray-100 h-fit sticky top-24 z-10">
+          <button onClick={() => setActiveTab('links')} className={`p-4 rounded-2xl transition-all ${activeTab === 'links' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><LinkIcon size={22} /></button>
+          <button onClick={() => setActiveTab('profile')} className={`p-4 rounded-2xl transition-all ${activeTab === 'profile' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><UserIcon size={22} /></button>
+          <button onClick={() => setActiveTab('socials')} className={`p-4 rounded-2xl transition-all ${activeTab === 'socials' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><Share2 size={22} /></button>
+          <button onClick={() => setActiveTab('appearance')} className={`p-4 rounded-2xl transition-all ${activeTab === 'appearance' ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110' : 'text-gray-400 hover:bg-gray-50'}`}><Palette size={22} /></button>
         </div>
 
         {/* Editor Main Area */}
@@ -175,41 +175,39 @@ const Dashboard = () => {
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
             {/* Contenedor del Dispositivo */}
-            <div className="relative w-[300px] h-[610px] bg-[#0a0a0a] rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden" style={{ isolation: 'isolate' }}>
+            <div className="relative w-[280px] h-[580px] bg-[#0a0a0a] rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)] border border-white/10 overflow-hidden" style={{ isolation: 'isolate' }}>
               
-              {/* PANTALLA: El recorte se aplica mediante máscara webkit y overflow */}
-              <div className="absolute inset-[10px] rounded-[2.6rem] bg-white overflow-hidden" 
+              {/* PANTALLA */}
+              <div className="absolute inset-[8px] rounded-[2.8rem] bg-white overflow-hidden" 
                    style={{ 
                      maskImage: '-webkit-radial-gradient(white, black)',
                      WebkitMaskImage: '-webkit-radial-gradient(white, black)',
                    }}>
                 
-                {/* Iframe Contenedor */}
-                <div className="w-full h-full relative overflow-hidden">
+                {/* Iframe Contenedor con Zoom Reducido y Sin Scrollbar */}
+                <div className="w-full h-full relative overflow-hidden bg-white">
                   <iframe 
                     src="/?preview=true" 
-                    className="absolute inset-0 w-[125%] h-[125%] border-none select-none pointer-events-none" 
+                    className="absolute inset-0 w-[166.6%] h-[166.6%] border-none select-none pointer-events-none" 
                     style={{ 
-                      transform: 'scale(0.8)', 
+                      transform: 'scale(0.6)', 
                       transformOrigin: 'top left',
                     }}
                     title="Live Preview" 
                   />
+                  {/* Overlay forzado para ocultar scrollbars si el iframe intenta mostrarlas */}
+                  <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)] rounded-[2.8rem]"></div>
                 </div>
               </div>
 
-              {/* MARCO DE SUPERPOSICIÓN (BEZEL): Esta capa se sitúa POR ENCIMA del iframe para tapar sus esquinas físicamente */}
-              <div className="absolute inset-0 border-[10px] border-[#0a0a0a] rounded-[3.5rem] pointer-events-none z-20"></div>
+              {/* MARCO DE SUPERPOSICIÓN (BEZEL) */}
+              <div className="absolute inset-0 border-[8px] border-[#0a0a0a] rounded-[3.5rem] pointer-events-none z-20"></div>
               
-              {/* Notch - Encima de todo */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0a0a0a] rounded-b-[1.5rem] z-30 flex items-center justify-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#1a1a1a]"></div>
-                <div className="w-10 h-1 rounded-full bg-[#1a1a1a]"></div>
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-[#0a0a0a] rounded-b-[1.2rem] z-30 flex items-center justify-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-[#1a1a1a]"></div>
+                <div className="w-8 h-1 rounded-full bg-[#1a1a1a]"></div>
               </div>
-
-              {/* Detalles Estéticos */}
-              <div className="absolute -left-[2px] top-24 w-[3px] h-10 bg-[#222] rounded-r-sm z-30"></div>
-              <div className="absolute -right-[2px] top-32 w-[3px] h-16 bg-[#222] rounded-l-sm z-30"></div>
             </div>
             
             <div className="mt-8 flex items-center gap-3 px-5 py-2.5 bg-white rounded-full shadow-lg border border-gray-100">
