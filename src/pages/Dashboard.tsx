@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { 
   Plus, 
@@ -13,11 +13,9 @@ import {
   Palette, 
   Share2,
   ExternalLink,
-  Sparkles,
-  Save,
-  Loader2,
   Camera,
-  Eye
+  Check,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
@@ -27,6 +25,28 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('links');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [showSaveBar, setShowSaveBar] = useState(false);
+  const hideSaveBarTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    if (saving) {
+      if (hideSaveBarTimer.current) clearTimeout(hideSaveBarTimer.current);
+      setShowSaveBar(true);
+    } else if (showSaveBar) {
+      hideSaveBarTimer.current = setTimeout(() => setShowSaveBar(false), 3000);
+    }
+    return () => {
+      if (hideSaveBarTimer.current) clearTimeout(hideSaveBarTimer.current);
+    };
+  }, [saving]);
+
+  const publicUrl = user?.id ? `${window.location.origin}/u/${user.id}` : '';
+  const copyPublicUrl = () => {
+    navigator.clipboard.writeText(publicUrl);
+    toast.success('¡Enlace público copiado!', {
+      style: { borderRadius: '1rem', background: '#333', color: '#fff' },
+    });
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,15 +92,20 @@ const Dashboard = () => {
           <AnimatePresence mode="wait">
             {activeTab === 'links' && (
               <motion.div key="links" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <div>
-                  <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
-                  <p className="text-gray-500 mt-1">Crea y organiza tus accesos directos.</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
+                    <p className="text-gray-500 mt-1">Crea y organiza tus accesos directos.</p>
+                  </div>
+                  <button onClick={copyPublicUrl} className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl transition-all active:scale-95 text-sm font-semibold" title="Copiar enlace público">
+                    <Share2 size={16} />
+                    Compartir perfil
+                  </button>
                 </div>
 
-                <button onClick={addLink} className="group w-full relative overflow-hidden bg-white hover:bg-primary border-2 border-dashed border-gray-200 hover:border-primary p-8 rounded-[2.5rem] transition-all duration-500 flex flex-col items-center justify-center space-y-3">
-                  <div className="w-14 h-14 bg-primary/10 group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"><Plus size={28} className="text-primary group-hover:text-white" /></div>
-                  <span className="text-lg font-bold text-gray-900 group-hover:text-white transition-colors">Añadir nuevo enlace</span>
-                  <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity"><Sparkles size={120} className="text-gray-900 group-hover:text-white" /></div>
+                <button onClick={addLink} className="flex items-center gap-3 w-full bg-white hover:bg-gray-50 border-2 border-dashed border-gray-200 hover:border-primary/50 p-4 rounded-2xl transition-all group">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center group-hover:bg-primary/20 transition-colors shrink-0"><Plus size={20} className="text-primary" /></div>
+                  <span className="font-semibold text-gray-700 group-hover:text-primary transition-colors">Añadir nuevo enlace</span>
                 </button>
 
                 <div className="space-y-4">
@@ -219,30 +244,37 @@ const Dashboard = () => {
 
       </div>
 
-      {/* Auto-save Bar */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4">
-        <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-between">
-          <div className="flex items-center space-x-3 ml-4">
-            <div className={`w-2 h-2 rounded-full ${saving ? 'bg-orange-400 animate-pulse' : dirty ? 'bg-amber-400' : 'bg-green-500'}`}></div>
-            <span className="text-sm font-bold text-gray-500">
-              {saving ? 'Guardando...' : dirty ? 'Guardando en unos segundos...' : 'Guardado'}
-            </span>
-          </div>
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/u/${user?.id}`;
-              navigator.clipboard.writeText(url);
-              toast.success('¡Enlace público copiado!', {
-                style: { borderRadius: '1rem', background: '#333', color: '#fff' },
-              });
-            }}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-600 p-3 rounded-2xl transition-all active:scale-95"
-            title="Copiar enlace público"
-          >
-            <Share2 size={20} />
-          </button>
-        </div>
+      {/* Share button for mobile */}
+      <div className="sm:hidden flex justify-center mt-4">
+        <button onClick={copyPublicUrl} className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl transition-all active:scale-95 text-sm font-semibold">
+          <Share2 size={16} />
+          Compartir perfil público
+          <ExternalLink size={14} className="text-gray-400" />
+        </button>
       </div>
+
+      {/* Auto-save Bar */}
+      <AnimatePresence>
+        {showSaveBar && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4"
+          >
+            <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-2xl flex items-center justify-center gap-3">
+              {saving ? (
+                <Loader2 size={16} className="text-orange-500 animate-spin" />
+              ) : (
+                <Check size={16} className="text-green-500" />
+              )}
+              <span className="text-sm font-bold text-gray-500">
+                {saving ? 'Guardando...' : 'Guardado'}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
