@@ -21,9 +21,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme } = useAppContext();
+  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
-  const [isSaving, setIsSaving] = useState(false);
 
   const themes = [
     { id: 'light', name: 'Original', bg: 'bg-[#f8f9fa]', card: 'bg-white' },
@@ -33,17 +32,24 @@ const Dashboard = () => {
   ];
 
   const handleSave = async () => {
-    setIsSaving(true);
-    // Simulamos una llamada a la base de datos
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    toast.success('¡Cambios sincronizados con la base de datos!', {
-      style: {
-        borderRadius: '1rem',
-        background: '#333',
-        color: '#fff',
-      },
-    });
+    try {
+      await saveLinks();
+      toast.success('¡Cambios sincronizados con la base de datos!', {
+        style: {
+          borderRadius: '1rem',
+          background: '#333',
+          color: '#fff',
+        },
+      });
+    } catch {
+      toast.error('Error al sincronizar. Intenta de nuevo.', {
+        style: {
+          borderRadius: '1rem',
+          background: '#333',
+          color: '#fff',
+        },
+      });
+    }
   };
 
   return (
@@ -241,17 +247,17 @@ const Dashboard = () => {
       <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
         <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between">
           <div className="flex items-center space-x-3 ml-4">
-            <div className={`w-2 h-2 rounded-full ${isSaving ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></div>
+            <div className={`w-2 h-2 rounded-full ${saving ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></div>
             <span className="text-sm font-bold text-gray-500">
-              {isSaving ? 'Sincronizando...' : 'Cambios listos para guardar'}
+              {saving ? 'Sincronizando...' : 'Cambios listos para guardar'}
             </span>
           </div>
           <button 
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={saving}
             className="bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white px-8 py-3 rounded-2xl font-black flex items-center space-x-2 transition-all transform active:scale-95 min-w-[160px] justify-center"
           >
-            {isSaving ? (
+            {saving ? (
               <Loader2 className="animate-spin" size={20} />
             ) : (
               <>

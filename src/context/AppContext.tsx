@@ -67,17 +67,33 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const loadUserData = () => {
+    const record = pb.authStore.record;
+    if (!record) return;
+    setUser(record);
+    setIsLoggedIn(true);
+    setProfile({
+      name: record.name || 'Sin nombre',
+      bio: record.bio || '',
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200',
+    });
+    setTheme(record.theme || 'light');
+    if (record.socials) {
+      try {
+        const parsed = typeof record.socials === 'string' ? JSON.parse(record.socials) : record.socials;
+        setSocials(parsed);
+      } catch {}
+    }
+    fetchLinks();
+  };
+
   useEffect(() => {
     if (pb.authStore.isValid) {
-      setUser(pb.authStore.record);
-      setIsLoggedIn(true);
-      fetchLinks();
+      loadUserData();
     }
     const unsubscribe = pb.authStore.onChange((token, record) => {
       if (record) {
-        setUser(record);
-        setIsLoggedIn(true);
-        fetchLinks();
+        loadUserData();
       }
     });
     return unsubscribe;
@@ -121,8 +137,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
       }
       await fetchLinks();
+      await pb.collection('users').update(userId, {
+        name: profile.name,
+        bio: profile.bio,
+        theme: theme,
+        socials: JSON.stringify(socials),
+      });
     } catch (e) {
-      console.error('Failed to save links:', e);
+      console.error('Failed to save:', e);
+      throw e;
     } finally {
       setSaving(false);
     }
@@ -180,6 +203,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     pb.authStore.clear();
     setUser(null);
     setIsLoggedIn(false);
+    setTheme('light');
+    setProfile({
+      name: 'Alex Rivera',
+      bio: 'Diseñador UI/UX & Desarrollador Frontend apasionado por crear experiencias digitales hermosas.',
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200',
+    });
+    setSocials([
+      { platform: 'Instagram', url: '#', isActive: true },
+      { platform: 'Twitter', url: '#', isActive: true },
+      { platform: 'Github', url: '#', isActive: true },
+    ]);
     setLinks([
       { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
       { id: '2', title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
