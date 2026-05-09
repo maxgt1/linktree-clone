@@ -13,13 +13,17 @@ import {
   Palette, 
   Share2,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Save,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
   const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
+  const [isSaving, setIsSaving] = useState(false);
 
   const themes = [
     { id: 'light', name: 'Original', bg: 'bg-[#f8f9fa]', card: 'bg-white' },
@@ -28,11 +32,26 @@ const Dashboard = () => {
     { id: 'ocean', name: 'Océano', bg: 'bg-[#e0f2f1]', card: 'bg-white' },
   ];
 
+  const handleSave = async () => {
+    setIsSaving(true);
+    // Simulamos una llamada a la base de datos
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setIsSaving(false);
+    toast.success('¡Cambios sincronizados con la base de datos!', {
+      style: {
+        borderRadius: '1rem',
+        background: '#333',
+        color: '#fff',
+      },
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-[#fafafa] pt-24 pb-12 px-4">
+    <div className="min-h-screen bg-[#fafafa] pt-24 pb-32 px-4">
+      <Toaster position="bottom-center" />
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Navigation Sidebar - Minimalist glassmorphism style */}
+        {/* Navigation Sidebar */}
         <div className="lg:col-span-1 flex lg:flex-col items-center justify-center lg:justify-start space-x-4 lg:space-x-0 lg:space-y-6 bg-white p-3 rounded-[2.5rem] shadow-sm border border-gray-100 h-fit sticky top-24 z-10">
           <button 
             onClick={() => setActiveTab('links')} 
@@ -71,15 +90,11 @@ const Dashboard = () => {
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                {/* Header with improved Add Button */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
-                    <p className="text-gray-500 mt-1">Personaliza cómo te ve el mundo.</p>
-                  </div>
+                <div>
+                  <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
+                  <p className="text-gray-500 mt-1">Personaliza cómo te ve el mundo.</p>
                 </div>
 
-                {/* New Premium Add Link Card */}
                 <button 
                   onClick={addLink}
                   className="group w-full relative overflow-hidden bg-white hover:bg-primary border-2 border-dashed border-gray-200 hover:border-primary p-8 rounded-[2.5rem] transition-all duration-500 flex flex-col items-center justify-center space-y-3"
@@ -93,7 +108,6 @@ const Dashboard = () => {
                   </div>
                 </button>
 
-                {/* Improved Links List */}
                 <div className="space-y-4">
                   {links.map((link) => (
                     <motion.div 
@@ -106,15 +120,13 @@ const Dashboard = () => {
                       </div>
                       
                       <div className="flex-1 grid gap-3">
-                        <div className="relative">
-                          <input 
-                            type="text" 
-                            value={link.title} 
-                            onChange={(e) => updateLink(link.id, { title: e.target.value })} 
-                            className="w-full font-bold text-lg text-gray-800 bg-transparent outline-none border-b-2 border-transparent focus:border-primary/20 pb-1 transition-all"
-                            placeholder="Título del enlace"
-                          />
-                        </div>
+                        <input 
+                          type="text" 
+                          value={link.title} 
+                          onChange={(e) => updateLink(link.id, { title: e.target.value })} 
+                          className="w-full font-bold text-lg text-gray-800 bg-transparent outline-none border-b-2 border-transparent focus:border-primary/20 pb-1 transition-all"
+                          placeholder="Título del enlace"
+                        />
                         <div className="flex items-center space-x-2 text-gray-400">
                           <ExternalLink size={14} />
                           <input 
@@ -147,16 +159,13 @@ const Dashboard = () => {
               </motion.div>
             )}
 
-            {/* Other tabs remain consistent in style */}
+            {/* Other tabs remain */}
             {activeTab === 'profile' && (
               <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
                 <h2 className="text-3xl font-black mb-8">Perfil</h2>
                 <div className="space-y-8">
                   <div className="flex flex-col items-center sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-8">
-                    <div className="relative group">
-                      <img src={profile.avatarUrl} className="w-32 h-32 rounded-[2.5rem] object-cover border-4 border-gray-50 shadow-md group-hover:opacity-80 transition-opacity" alt="Avatar" />
-                      <button className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white font-bold bg-black/20 rounded-[2.5rem]">Editar</button>
-                    </div>
+                    <img src={profile.avatarUrl} className="w-32 h-32 rounded-[2.5rem] object-cover border-4 border-gray-50 shadow-md" alt="Avatar" />
                     <div className="flex-1 w-full space-y-6">
                       <div>
                         <label className="block text-sm font-black text-gray-500 uppercase tracking-wider mb-2 ml-1">Nombre Público</label>
@@ -177,10 +186,8 @@ const Dashboard = () => {
                 <h2 className="text-3xl font-black mb-8">Redes Sociales</h2>
                 <div className="grid gap-4">
                   {socials.map((social) => (
-                    <div key={social.platform} className="flex items-center space-x-4 p-5 bg-gray-50 rounded-3xl transition-all hover:bg-gray-100 group">
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors shadow-sm">
-                        <Share2 size={20} />
-                      </div>
+                    <div key={social.platform} className="flex items-center space-x-4 p-5 bg-gray-50 rounded-3xl">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-gray-400 shadow-sm"><Share2 size={20} /></div>
                       <div className="flex-1">
                         <span className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-1">{social.platform}</span>
                         <input type="text" value={social.url} onChange={(e) => updateSocial(social.platform, { url: e.target.value })} placeholder={`Link de ${social.platform}`} className="w-full bg-transparent outline-none font-bold text-gray-700" />
@@ -204,13 +211,8 @@ const Dashboard = () => {
                       onClick={() => setTheme(t.id)}
                       className={`relative p-2 rounded-[2rem] border-2 transition-all overflow-hidden ${theme === t.id ? 'border-primary' : 'border-transparent'}`}
                     >
-                      <div className={`h-32 w-full rounded-[1.5rem] mb-3 ${t.bg} border border-gray-100 flex items-center justify-center overflow-hidden relative`}>
+                      <div className={`h-32 w-full rounded-[1.5rem] mb-3 ${t.bg} border border-gray-100 flex items-center justify-center`}>
                         <div className={`w-3/4 h-6 ${t.card} rounded-full shadow-sm`}></div>
-                        {theme === t.id && (
-                          <div className="absolute top-2 right-2 bg-primary text-white p-1 rounded-full">
-                            <Plus size={12} className="rotate-45" />
-                          </div>
-                        )}
                       </div>
                       <span className="font-bold text-gray-900 pb-2 block">{t.name}</span>
                     </button>
@@ -221,7 +223,7 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Desktop Preview - More integrated look */}
+        {/* Desktop Preview */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center space-y-6">
             <div className="w-[280px] h-[580px] bg-white rounded-[3.5rem] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[10px] border-gray-900 relative">
@@ -230,13 +232,35 @@ const Dashboard = () => {
                 <iframe src="/" className="w-full h-full border-none pointer-events-none" title="Live Preview" />
               </div>
             </div>
-            <div className="flex items-center space-x-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span>Vista previa en vivo</span>
-            </div>
           </div>
         </div>
 
+      </div>
+
+      {/* Persistence Bar - FLOATING SAVE BUTTON */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
+        <div className="bg-white/80 backdrop-blur-xl border border-gray-100 p-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between">
+          <div className="flex items-center space-x-3 ml-4">
+            <div className={`w-2 h-2 rounded-full ${isSaving ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></div>
+            <span className="text-sm font-bold text-gray-500">
+              {isSaving ? 'Sincronizando...' : 'Cambios listos para guardar'}
+            </span>
+          </div>
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-primary hover:bg-primary/90 disabled:bg-primary/50 text-white px-8 py-3 rounded-2xl font-black flex items-center space-x-2 transition-all transform active:scale-95 min-w-[160px] justify-center"
+          >
+            {isSaving ? (
+              <Loader2 className="animate-spin" size={20} />
+            ) : (
+              <>
+                <Save size={20} />
+                <span>Guardar</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
