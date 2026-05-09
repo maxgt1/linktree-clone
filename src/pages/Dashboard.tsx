@@ -171,39 +171,31 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Mockup Móvil - Perfeccionado */}
+        {/* Mockup Móvil - Corregido como Máscara */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
-            
-            {/* Contenedor del teléfono con bordes reales */}
-            <div className="relative w-[310px] h-[630px] p-[10px] bg-[#1a1a1a] rounded-[3.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] ring-1 ring-white/10 overflow-hidden">
+            {/* Contenedor del teléfono */}
+            <div className="relative w-[300px] h-[610px] bg-black rounded-[3.5rem] p-3 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border-[4px] border-gray-800">
+              {/* Notch */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-3xl z-30"></div>
               
-              {/* Reflejos del marco */}
-              <div className="absolute inset-0 rounded-[3.5rem] border-[4px] border-[#333] z-50 pointer-events-none"></div>
-              
-              {/* Pantalla / Máscara con overflow-hidden real */}
-              <div className="w-full h-full rounded-[2.8rem] overflow-hidden bg-white relative z-0">
-                {/* Iframe con escala para ajustar el zoom */}
+              {/* Pantalla / Máscara */}
+              <div className="w-full h-full rounded-[2.8rem] overflow-hidden bg-white relative z-10">
+                {/* Iframe con preview=true para ocultar la Navbar */}
                 <iframe 
                   src="/?preview=true" 
-                  className="w-full h-full border-none select-none pointer-events-none no-scrollbar origin-top" 
-                  style={{ transform: 'scale(1)', height: '100%', width: '100%' }}
+                  className="w-full h-full border-none select-none pointer-events-none" 
                   title="Live Preview" 
                 />
               </div>
-
-              {/* Notch superior - Siempre encima */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-8 bg-[#1a1a1a] rounded-b-[2rem] z-[60]">
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-white/10 rounded-full"></div>
-              </div>
               
-              {/* Botones laterales físicos (detalles visuales) */}
-              <div className="absolute -left-[2px] top-28 w-[4px] h-12 bg-[#222] rounded-r-md z-50"></div>
-              <div className="absolute -right-[2px] top-28 w-[4px] h-20 bg-[#222] rounded-l-md z-50"></div>
+              {/* Brillo lateral del teléfono */}
+              <div className="absolute -left-1 top-24 w-1 h-12 bg-gray-700 rounded-r-sm"></div>
+              <div className="absolute -right-1 top-24 w-1 h-20 bg-gray-700 rounded-l-sm"></div>
             </div>
             
-            <p className="mt-8 text-sm font-bold text-gray-400 flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-              <Eye size={14} className="text-primary" /> Vista previa en tiempo real
+            <p className="mt-6 text-sm font-medium text-gray-400 flex items-center gap-2">
+              <Eye size={14} /> Vista previa en tiempo real
             </p>
           </div>
         </div>
