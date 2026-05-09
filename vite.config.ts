@@ -7,6 +7,12 @@ export default defineConfig(() => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      "/api": {
+        target: "https://pb2.mgtserver.es",
+        changeOrigin: true,
+      },
+    },
   },
   plugins: [dyadComponentTagger(), react()],
   resolve: {

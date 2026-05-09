@@ -10,8 +10,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { isLoggedIn, logout } = useAppContext();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 

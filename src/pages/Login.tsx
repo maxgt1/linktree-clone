@@ -5,16 +5,36 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
+import { ClientResponseError } from 'pocketbase';
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
-  const { login } = useAppContext();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const { login, register, authLoading } = useAppContext();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    login();
-    navigate('/dashboard');
+    setError('');
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password, name);
+      }
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      if (err instanceof ClientResponseError) {
+        setError(err.response?.message || err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error al autenticar');
+      }
+    }
   };
 
   return (
@@ -50,7 +70,10 @@ const Login = () => {
                   <input 
                     type="text" 
                     placeholder="Tu nombre"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
                     className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                    required
                   />
                 </div>
               </motion.div>
@@ -64,6 +87,8 @@ const Login = () => {
               <input 
                 type="email" 
                 placeholder="nombre@ejemplo.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
                 required
               />
@@ -84,18 +109,33 @@ const Login = () => {
               <input 
                 type="password" 
                 placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
                 required
               />
             </div>
           </div>
 
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl p-4 text-sm font-medium">
+              {error}
+            </div>
+          )}
+
           <button 
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2 mt-4"
+            disabled={authLoading}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span>{isLogin ? 'Entrar' : 'Registrarse'}</span>
-            <ArrowRight size={20} />
+            {authLoading ? (
+              <span>Cargando...</span>
+            ) : (
+              <>
+                <span>{isLogin ? 'Entrar' : 'Registrarse'}</span>
+                <ArrowRight size={20} />
+              </>
+            )}
           </button>
         </form>
 

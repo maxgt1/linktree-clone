@@ -1,6 +1,8 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import pb from '@/lib/pocketbase';
+import type { RecordModel } from 'pocketbase';
 
 interface Link {
   id: string;
@@ -27,21 +29,40 @@ interface AppContextType {
   socials: SocialLink[];
   theme: string;
   isLoggedIn: boolean;
+  authLoading: boolean;
+  user: RecordModel | null;
   updateLink: (id: string, updates: Partial<Link>) => void;
   addLink: () => void;
   deleteLink: (id: string) => void;
   updateProfile: (updates: Partial<ProfileData>) => void;
   updateSocial: (platform: string, updates: Partial<SocialLink>) => void;
   setTheme: (theme: string) => void;
-  login: () => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<RecordModel | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
   const [theme, setTheme] = useState('light');
+
+  useEffect(() => {
+    if (pb.authStore.isValid) {
+      setUser(pb.authStore.record);
+      setIsLoggedIn(true);
+    }
+    const unsubscribe = pb.authStore.onChange((token, record) => {
+      if (record) {
+        setUser(record);
+        setIsLoggedIn(true);
+      }
+    });
+    return unsubscribe;
+  }, []);
   
   const [links, setLinks] = useState<Link[]>([
     { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
@@ -86,8 +107,34 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setSocials(prev => prev.map(social => social.platform === platform ? { ...social, ...updates } : social));
   };
 
-  const login = () => setIsLoggedIn(true);
-  const logout = () => setIsLoggedIn(false);
+  const login = async (email: string, password: string) => {
+    setAuthLoading(true);
+    try {
+      await pb.collection('users').authWithPassword(email, password);
+      setUser(pb.authStore.record);
+      setIsLoggedIn(true);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const register = async (email: string, password: string, name: string) => {
+    setAuthLoading(true);
+    try {
+      await pb.collection('users').create({ email, password, passwordConfirm: password, name });
+      await pb.collection('users').authWithPassword(email, password);
+      setUser(pb.authStore.record);
+      setIsLoggedIn(true);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    pb.authStore.clear();
+    setUser(null);
+    setIsLoggedIn(false);
+  };
 
   return (
     <AppContext.Provider value={{ 
@@ -95,7 +142,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       profile, 
       socials,
       theme,
-      isLoggedIn, 
+      isLoggedIn,
+      authLoading,
+      user,
       updateLink, 
       addLink, 
       deleteLink, 
@@ -103,6 +152,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       updateSocial,
       setTheme,
       login,
+      register,
       logout
     }}>
       {children}
