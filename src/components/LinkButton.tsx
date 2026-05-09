@@ -1,31 +1,32 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { ExternalLink } from 'lucide-react';
 
 interface LinkButtonProps {
   title: string;
   url: string;
-  icon?: React.ReactNode;
+  theme?: string;
 }
 
-const LinkButton = ({ title, url, icon }: LinkButtonProps) => {
+const LinkButton = ({ title, url, theme = 'light' }: LinkButtonProps) => {
+  const themeClasses: Record<string, string> = {
+    light: 'bg-white text-gray-800 border-gray-200 hover:bg-gray-50',
+    dark: 'bg-[#1e1e1e] text-white border-white/10 hover:bg-[#252525]',
+    sunset: 'bg-white/70 backdrop-blur-md text-rose-900 border-rose-100 hover:bg-white/90',
+    ocean: 'bg-white/70 backdrop-blur-md text-cyan-900 border-cyan-100 hover:bg-white/90',
+  };
+
+  const currentTheme = themeClasses[theme] || themeClasses.light;
+
   return (
-    <motion.a
+    <a
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="group relative flex items-center justify-between w-full p-4 mb-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300"
+      className={`w-full py-4 px-6 rounded-2xl border-2 font-bold text-center transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-sm flex items-center justify-center ${currentTheme}`}
     >
-      <div className="flex items-center space-x-4">
-        {icon && <div className="text-gray-600 group-hover:text-black transition-colors">{icon}</div>}
-        <span className="font-semibold text-gray-800 group-hover:text-black">{title}</span>
-      </div>
-      <ExternalLink size={18} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
-    </motion.a>
+      {title}
+    </a>
   );
 };
 

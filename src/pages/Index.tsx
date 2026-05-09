@@ -1,55 +1,82 @@
 "use client";
-import React from "react";
-import Profile from "../components/Profile";
-import LinkButton from "../components/LinkButton";
-import SocialLinks from "../components/SocialLinks";
-import { useAppContext } from "@/context/AppContext";
-import { Globe } from "lucide-react";
+
+import React from 'react';
+import { useLocation } from 'react-router-dom';
+import { useAppContext } from '@/context/AppContext';
+import Profile from '@/components/Profile';
+import LinkButton from '@/components/LinkButton';
+import Navbar from '@/components/Navbar';
+import { motion } from 'framer-motion';
+import { Share2 } from 'lucide-react';
 
 const Index = () => {
-    const {
-        links,
-        profile,
-        theme
-    } = useAppContext();
+  const { links, profile, socials, theme } = useAppContext();
+  const location = useLocation();
+  const isPreview = new URLSearchParams(location.search).get('preview') === 'true';
 
-    const activeLinks = links.filter(l => l.isActive);
+  const themes: Record<string, string> = {
+    light: 'bg-[#f8f9fa]',
+    dark: 'bg-[#121212] text-white',
+    sunset: 'bg-gradient-to-br from-orange-50 to-rose-100',
+    ocean: 'bg-gradient-to-br from-cyan-50 to-blue-100',
+  };
 
-    const getThemeStyles = () => {
-        switch (theme) {
-        case "dark":
-            return "bg-[#121212] text-white";
-        case "sunset":
-            return "bg-gradient-to-br from-orange-100 to-rose-200";
-        case "ocean":
-            return "bg-[#e0f2f1]";
-        default:
-            return "bg-[#f8f9fa]";
-        }
-    };
+  const containerTheme = themes[theme] || themes.light;
 
-    return (
-        <div
-            className={`min-h-screen ${getThemeStyles()} py-16 px-4 transition-colors duration-500`}>
-            <div className="max-w-md mx-auto">
-                <Profile name={profile.name} bio={profile.bio} avatarUrl={profile.avatarUrl} />
-                <div className="space-y-4">
-                    {activeLinks.map(link => (<LinkButton
-                        key={link.id}
-                        title={link.title}
-                        url={link.url}
-                        icon={<Globe size={20} />} />))}
-                    {activeLinks.length === 0 && (<div className="text-center py-12 text-gray-400">No hay enlaces activos.
-                                    </div>)}
-                </div>
-                <SocialLinks />
-                <footer className="mt-16 text-center">
-                    <p
-                        className={`${theme === "dark" ? "text-gray-500" : "text-gray-400"} text-sm font-medium`}></p>
-                </footer>
-            </div>
+  return (
+    <div className={`min-h-screen ${containerTheme} transition-colors duration-500`} data-preview={isPreview}>
+      {!isPreview && <Navbar />}
+      
+      <main className={`max-w-2xl mx-auto px-4 ${isPreview ? 'pt-8 pb-12' : 'pt-32 pb-24'}`}>
+        <div className="space-y-10">
+          <Profile 
+            name={profile.name} 
+            bio={profile.bio} 
+            avatarUrl={profile.avatarUrl} 
+          />
+
+          {/* Social Links */}
+          <div className="flex justify-center gap-4">
+            {socials.filter(s => s.isActive && s.url).map((social) => (
+              <a 
+                key={social.platform}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 backdrop-blur-sm border border-white/20 shadow-sm hover:scale-110 transition-transform"
+              >
+                <Share2 size={18} className="text-gray-600" />
+              </a>
+            ))}
+          </div>
+
+          {/* Links List */}
+          <div className="space-y-4">
+            {links.filter(l => l.isActive).map((link, index) => (
+              <motion.div
+                key={link.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <LinkButton 
+                  title={link.title} 
+                  url={link.url} 
+                  theme={theme}
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {profile.name && (
+            <footer className="text-center pt-12">
+              <p className="text-sm font-medium opacity-50">© {profile.name} — LinkClone</p>
+            </footer>
+          )}
         </div>
-    );
+      </main>
+    </div>
+  );
 };
 
 export default Index;
