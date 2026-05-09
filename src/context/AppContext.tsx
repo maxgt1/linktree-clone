@@ -59,13 +59,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!pb.authStore.isValid) return;
     try {
       const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
-      setLinks(records.map(r => ({
+      const newLinks = records.map(r => ({
         id: r.id,
         title: r.title,
         url: r.url,
         isActive: r.is_active,
-      })));
+      }));
+      console.log('[FETCHLINKS] loaded ' + newLinks.length + ' links from PB', JSON.stringify(newLinks));
+      setLinks(newLinks);
     } catch {
+      console.log('[FETCHLINKS] error, setting empty');
       setLinks([]);
     }
   };
@@ -109,20 +112,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const savingRef = useRef(false);
   const [avatarFile, setAvatarFileState] = useState<File | null>(null);
   const [dirty, setDirty] = useState(false);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyGen = useRef(0);
+  const saveLinksRef = useRef<() => Promise<boolean>>(async () => false);
+
+  const doSaveAttempt = (gen: number) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
+      if (savingRef.current) {
+        console.log('[AUTOSAVE] savingRef true, retrying gen=' + gen);
+        doSaveAttempt(gen);
+        return;
+      }
+      console.log('[AUTOSAVE] firing saveLinks gen=' + gen + ' dirtyGen=' + dirtyGen.current);
+      const ok = await saveLinksRef.current();
+      console.log('[AUTOSAVE] saveLinks returned ok=' + ok + ' gen=' + gen + ' dirtyGen=' + dirtyGen.current);
+      if (ok && dirtyGen.current === gen) {
+        console.log('[AUTOSAVE] clearing dirty');
+        setDirty(false);
+      }
+    }, 2500);
+  };
 
   const markDirty = () => {
     dirtyGen.current++;
     setDirty(true);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    const gen = dirtyGen.current;
-    debounceTimer.current = setTimeout(async () => {
-      try {
-        await saveLinks();
-      } catch {}
-      if (dirtyGen.current === gen) setDirty(false);
-    }, 2500);
+    doSaveAttempt(dirtyGen.current);
   };
 
   useEffect(() => {
@@ -157,12 +172,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     markDirty();
   };
 
-  const saveLinks = async () => {
-    if (!pb.authStore.isValid || savingRef.current) return;
+  const saveLinks = async (): Promise<boolean> => {
+    if (!pb.authStore.isValid) { console.log('[SAVELINKS] invalid auth, skipping'); return false; }
+    if (savingRef.current) { console.log('[SAVELINKS] savingRef true, skipping'); return false; }
     savingRef.current = true;
     setSaving(true);
     try {
       const userId = pb.authStore.record?.id;
+      console.log('[SAVELINKS] starting save for user=' + userId + ' links=' + JSON.stringify(links.map(l => ({title: l.title, url: l.url}))));
       const existing = await pb.collection('links').getFullList({ filter: `user = "${userId}"` });
       for (const record of existing) {
         await pb.collection('links').delete(record.id);
@@ -175,7 +192,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           user: userId,
         });
       }
-      await fetchLinks();
       const userData: Record<string, any> = {
         name: profile.name,
         bio: profile.bio,
@@ -193,14 +209,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           ? pb.files.getURL(updated, updated.avatar, { thumb: '200x200' })
           : prev.avatarUrl,
       }));
+      return true;
     } catch (e) {
       console.error('Failed to save:', e);
-      throw e;
+      return false;
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
   };
+  saveLinksRef.current = saveLinks;
 
   const [links, setLinks] = useState<Link[]>([
     { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
