@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import pb from '@/lib/pocketbase';
 import type { RecordModel } from 'pocketbase';
 
@@ -38,6 +38,7 @@ interface AppContextType {
   deleteLink: (id: string) => void;
   saveLinks: () => Promise<void>;
   saving: boolean;
+  dirty: boolean;
   updateProfile: (updates: Partial<ProfileData>) => void;
   updateSocial: (platform: string, updates: Partial<SocialLink>) => void;
   setTheme: (theme: string) => void;
@@ -52,7 +53,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<RecordModel | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
-  const [theme, setTheme] = useState('light');
+  const [theme, setThemeState] = useState('light');
 
   const fetchLinks = async () => {
     if (!pb.authStore.isValid) return;
@@ -82,7 +83,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       bio: record.bio || '',
       avatarUrl: avatar,
     });
-    setTheme(record.theme || 'light');
+    setThemeState(record.theme || 'light');
     if (record.socials) {
       try {
         const parsed = typeof record.socials === 'string' ? JSON.parse(record.socials) : record.socials;
@@ -105,10 +106,39 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const [saving, setSaving] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const savingRef = useRef(false);
+  const [avatarFile, setAvatarFileState] = useState<File | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
+  const dirtyGen = useRef(0);
+
+  const markDirty = () => {
+    dirtyGen.current++;
+    setDirty(true);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    const gen = dirtyGen.current;
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        await saveLinks();
+      } catch {}
+      if (dirtyGen.current === gen) setDirty(false);
+    }, 2500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
+
+  const setAvatarFile = (file: File | null) => {
+    setAvatarFileState(file);
+    if (file) markDirty();
+  };
 
   const updateLink = (id: string, updates: Partial<Link>) => {
     setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
+    markDirty();
   };
 
   const addLink = () => {
@@ -119,14 +149,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isActive: true,
     };
     setLinks(prev => [newLink, ...prev]);
+    markDirty();
   };
 
   const deleteLink = (id: string) => {
     setLinks(prev => prev.filter(link => link.id !== id));
+    markDirty();
   };
 
   const saveLinks = async () => {
-    if (!pb.authStore.isValid) return;
+    if (!pb.authStore.isValid || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const userId = pb.authStore.record?.id;
@@ -164,6 +197,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       console.error('Failed to save:', e);
       throw e;
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -187,10 +221,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = (updates: Partial<ProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
+    markDirty();
   };
 
   const updateSocial = (platform: string, updates: Partial<SocialLink>) => {
     setSocials(prev => prev.map(social => social.platform === platform ? { ...social, ...updates } : social));
+    markDirty();
   };
 
   const login = async (email: string, password: string) => {
@@ -216,11 +252,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setTheme = (t: string) => {
+    setThemeState(t);
+    markDirty();
+  };
+
   const logout = async () => {
     pb.authStore.clear();
     setUser(null);
     setIsLoggedIn(false);
-    setTheme('light');
+    setThemeState('light');
     setProfile({
       name: 'Alex Rivera',
       bio: 'Diseñador UI/UX & Desarrollador Frontend apasionado por crear experiencias digitales hermosas.',
@@ -246,6 +287,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isLoggedIn,
       authLoading,
       saving,
+      dirty,
       user,
       avatarFile,
       setAvatarFile,
