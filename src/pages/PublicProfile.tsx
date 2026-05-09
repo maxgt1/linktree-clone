@@ -29,23 +29,27 @@ const PublicProfile = () => {
   const [links, setLinks] = useState<PublicLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [errorDetail, setErrorDetail] = useState('');
 
   useEffect(() => {
     if (!userId) {
+      setErrorDetail('No hay userId en la URL');
       setError(true);
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(false);
+    setErrorDetail('');
 
-    Promise.all([
-      pb.collection('users').getOne(userId),
-      pb.collection('links').getFullList({
-        filter: `user = "${userId}" && is_active = true`,
-      }),
-    ])
-      .then(([userRecord, linkRecords]) => {
+    const loadUser = async () => {
+      try {
+        const [userRecord, linkRecords] = await Promise.all([
+          pb.collection('users').getOne(userId),
+          pb.collection('links').getFullList({
+            filter: `user = "${userId}" && is_active = true`,
+          }),
+        ]);
         const avatar = userRecord.avatar
           ? pb.files.getURL(userRecord, userRecord.avatar, { thumb: '200x200' })
           : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200';
@@ -65,12 +69,16 @@ const PublicProfile = () => {
           url: r.url,
           isActive: r.is_active,
         })));
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch (e: any) {
+        console.error('PublicProfile error:', e);
+        setErrorDetail(e?.message || e?.toString() || 'Error desconocido');
         setError(true);
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    loadUser();
   }, [userId]);
 
   const getThemeStyles = () => {
@@ -96,6 +104,9 @@ const PublicProfile = () => {
       <div className="min-h-screen bg-[#f8f9fa] flex flex-col items-center justify-center text-gray-400">
         <UserX size={48} className="mb-4" />
         <p className="text-lg font-medium">Usuario no encontrado</p>
+        {errorDetail && (
+          <p className="text-sm mt-2 text-gray-500 max-w-md text-center">{errorDetail}</p>
+        )}
       </div>
     );
   }
