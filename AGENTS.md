@@ -23,6 +23,8 @@
 - **Auth via PocketBase**: `AppContext` has async `login(email, pass)`, `register(email, pass, name)`, `logout()` using `pb.collection('users')`. Token persisted automatically by SDK.
 - **No `.env` file** needed for dev — `VITE_POCKETBASE_URL=https://pb2.mgtserver.es` is in `.env`
 - Data is hardcoded in `AppContext` (demo links, profile, socials)
+- **`links` collection exists** in PocketBase: `title` (text), `url` (url), `is_active` (bool), `user` (relation → users). CRUD ruled by `user = @request.auth.id`.
+- Links CRUD (add/update/delete) in the Dashboard syncs to PocketBase immediately. Demo data shown when not logged in.
 - SPA routing: `vercel.json` rewrites all paths to `index.html`
 
 ## PocketBase admin access

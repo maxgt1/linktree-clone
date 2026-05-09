@@ -50,20 +50,83 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [authLoading, setAuthLoading] = useState(false);
   const [theme, setTheme] = useState('light');
 
+  const fetchLinks = async () => {
+    if (!pb.authStore.isValid) return;
+    try {
+      const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
+      setLinks(records.map(r => ({
+        id: r.id,
+        title: r.title,
+        url: r.url,
+        isActive: r.is_active,
+      })));
+    } catch {
+      setLinks([]);
+    }
+  };
+
   useEffect(() => {
     if (pb.authStore.isValid) {
       setUser(pb.authStore.record);
       setIsLoggedIn(true);
+      fetchLinks();
     }
     const unsubscribe = pb.authStore.onChange((token, record) => {
       if (record) {
         setUser(record);
         setIsLoggedIn(true);
+        fetchLinks();
       }
     });
     return unsubscribe;
   }, []);
-  
+
+  const updateLink = async (id: string, updates: Partial<Link>) => {
+    setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
+    if (!pb.authStore.isValid) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data: Record<string, any> = {};
+    if ('title' in updates) data.title = updates.title;
+    if ('url' in updates) data.url = updates.url;
+    if ('isActive' in updates) data.is_active = updates.isActive;
+    try {
+      await pb.collection('links').update(id, data);
+    } catch {
+      fetchLinks();
+    }
+  };
+
+  const addLink = async () => {
+    if (!pb.authStore.isValid) return;
+    try {
+      const record = await pb.collection('links').create({
+        title: 'Nuevo Enlace',
+        url: 'https://',
+        is_active: true,
+        user: pb.authStore.record?.id,
+      });
+      const newLink: Link = {
+        id: record.id,
+        title: record.title,
+        url: record.url,
+        isActive: record.is_active,
+      };
+      setLinks(prev => [newLink, ...prev]);
+    } catch {
+      // silent
+    }
+  };
+
+  const deleteLink = async (id: string) => {
+    setLinks(prev => prev.filter(link => link.id !== id));
+    if (!pb.authStore.isValid) return;
+    try {
+      await pb.collection('links').delete(id);
+    } catch {
+      fetchLinks();
+    }
+  };
+
   const [links, setLinks] = useState<Link[]>([
     { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
     { id: '2', title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
@@ -80,24 +143,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     { platform: 'Twitter', url: '#', isActive: true },
     { platform: 'Github', url: '#', isActive: true },
   ]);
-
-  const updateLink = (id: string, updates: Partial<Link>) => {
-    setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
-  };
-
-  const addLink = () => {
-    const newLink = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: 'Nuevo Enlace',
-      url: 'https://',
-      isActive: true
-    };
-    setLinks([newLink, ...links]);
-  };
-
-  const deleteLink = (id: string) => {
-    setLinks(prev => prev.filter(link => link.id !== id));
-  };
 
   const updateProfile = (updates: Partial<ProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
@@ -134,6 +179,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     pb.authStore.clear();
     setUser(null);
     setIsLoggedIn(false);
+    setLinks([
+      { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
+      { id: '2', title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
+    ]);
   };
 
   return (
