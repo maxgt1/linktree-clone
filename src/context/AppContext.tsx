@@ -31,6 +31,8 @@ interface AppContextType {
   isLoggedIn: boolean;
   authLoading: boolean;
   user: RecordModel | null;
+  avatarFile: File | null;
+  setAvatarFile: (file: File | null) => void;
   updateLink: (id: string, updates: Partial<Link>) => void;
   addLink: () => void;
   deleteLink: (id: string) => void;
@@ -72,10 +74,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!record) return;
     setUser(record);
     setIsLoggedIn(true);
+    const avatar = record.avatar
+      ? pb.files.getURL(record, record.avatar, { thumb: '200x200' })
+      : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200';
     setProfile({
       name: record.name || 'Sin nombre',
       bio: record.bio || '',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200',
+      avatarUrl: avatar,
     });
     setTheme(record.theme || 'light');
     if (record.socials) {
@@ -100,6 +105,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const updateLink = (id: string, updates: Partial<Link>) => {
     setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
@@ -137,12 +143,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         });
       }
       await fetchLinks();
-      await pb.collection('users').update(userId, {
+      const userData: Record<string, any> = {
         name: profile.name,
         bio: profile.bio,
         theme: theme,
         socials: JSON.stringify(socials),
-      });
+      };
+      if (avatarFile) {
+        userData.avatar = avatarFile;
+      }
+      const updated = await pb.collection('users').update(userId, userData);
+      setAvatarFile(null);
+      setProfile(prev => ({
+        ...prev,
+        avatarUrl: updated.avatar
+          ? pb.files.getURL(updated, updated.avatar, { thumb: '200x200' })
+          : prev.avatarUrl,
+      }));
     } catch (e) {
       console.error('Failed to save:', e);
       throw e;
@@ -230,6 +247,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       authLoading,
       saving,
       user,
+      avatarFile,
+      setAvatarFile,
       updateLink, 
       addLink, 
       deleteLink, 

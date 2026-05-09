@@ -24,9 +24,10 @@
 - **No `.env` file** needed for dev — `VITE_POCKETBASE_URL=https://pb2.mgtserver.es` is in `.env`
 - **`links` collection** in PocketBase: `title` (text), `url` (url), `is_active` (bool), `user` (relation → users). CRUD ruled by `user = @request.auth.id`.
 - **`users` collection** has extra fields: `bio` (text), `theme` (text), `socials` (json) — added manually via PB admin API.
-- Links CRUD + profile/socials/theme are local-only in the Dashboard; "Guardar" button syncs all via `saveLinks()` (links: delete-all + recreate; user record: update name, bio, theme, socials).
+- Links CRUD + profile/socials/theme are local-only in the Dashboard; "Guardar" button syncs all via `saveLinks()` (links: delete-all + recreate; user record: update name, bio, theme, socials, avatar).
 - `saveLinks()` is called from Dashboard's `handleSave` — no longer a mock timeout.
 - On login/init: `loadUserData()` restores profile, theme, socials from user record + fetches links.
+- **Avatar upload**: Click avatar image in profile tab → file picker → shows preview → "Guardar" uploads file to PocketBase via multipart/form-data (`pb.collection('users').update`). Uses `pb.files.getURL()` for display. `avatarFile` state tracks pending file.
 - SPA routing: `vercel.json` rewrites all paths to `index.html`
 
 ## PocketBase admin access

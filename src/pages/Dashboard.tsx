@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import { 
   Plus, 
@@ -15,14 +15,25 @@ import {
   ExternalLink,
   Sparkles,
   Save,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving } = useAppContext();
+  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving, avatarFile, setAvatarFile } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+    }
+  };
 
   const themes = [
     { id: 'light', name: 'Original', bg: 'bg-[#f8f9fa]', card: 'bg-white' },
@@ -171,7 +182,13 @@ const Dashboard = () => {
                 <h2 className="text-3xl font-black mb-8">Perfil</h2>
                 <div className="space-y-8">
                   <div className="flex flex-col items-center sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-8">
-                    <img src={profile.avatarUrl} className="w-32 h-32 rounded-[2.5rem] object-cover border-4 border-gray-50 shadow-md" alt="Avatar" />
+                    <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      <img src={avatarPreview || profile.avatarUrl} className="w-32 h-32 rounded-[2.5rem] object-cover border-4 border-gray-50 shadow-md" alt="Avatar" />
+                      <div className="absolute inset-0 bg-black/40 rounded-[2.5rem] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity border-4 border-transparent">
+                        <Camera size={28} className="text-white" />
+                      </div>
+                      <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                    </div>
                     <div className="flex-1 w-full space-y-6">
                       <div>
                         <label className="block text-sm font-black text-gray-500 uppercase tracking-wider mb-2 ml-1">Nombre Público</label>
