@@ -171,20 +171,17 @@ const Dashboard = () => {
           </AnimatePresence>
         </div>
 
-        {/* Mockup Móvil - Rediseño con Máscara Superior */}
+        {/* Mockup Móvil - Sistema de Recorte Estricto */}
         <div className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 h-[calc(100vh-120px)] flex flex-col items-center justify-center">
-            {/* Contenedor Principal del Dispositivo */}
-            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 p-[10px]">
+            {/* Chasis del teléfono: es el que hace de máscara principal */}
+            <div className="relative w-[300px] h-[610px] bg-[#0f0f0f] rounded-[3.8rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] ring-1 ring-white/10 overflow-hidden">
               
-              {/* Notch superior - z-30 para estar sobre el contenido */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f0f0f] rounded-b-[1.5rem] z-30"></div>
+              {/* Notch superior - fijo sobre el recorte */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-36 h-7 bg-[#0f0f0f] rounded-b-[1.5rem] z-50"></div>
               
-              {/* MARCO SUPERPUESTO - Esta es la clave para que no se vean las esquinas */}
-              <div className="absolute inset-0 border-[10px] border-[#0f0f0f] rounded-[3.8rem] pointer-events-none z-20"></div>
-              
-              {/* Pantalla / Contenido (z-10) */}
-              <div className="w-full h-full rounded-[3rem] overflow-hidden bg-white relative z-10">
+              {/* Contenedor de la pantalla con su propio recorte ajustado */}
+              <div className="absolute inset-[10px] bg-white rounded-[3rem] overflow-hidden z-10">
                 <div className="w-full h-full relative" style={{ isolation: 'isolate' }}>
                   <iframe 
                     src="/?preview=true" 
@@ -198,10 +195,10 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Detalles estéticos adicionales del chasis */}
+              {/* Detalles estéticos externos (botones) */}
               <div className="absolute -left-1 top-24 w-1 h-12 bg-gray-800 rounded-r-full z-20"></div>
               <div className="absolute -right-1 top-24 w-1 h-20 bg-gray-800 rounded-l-full z-20"></div>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-30"></div>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/20 rounded-full z-50"></div>
             </div>
             
             <p className="mt-6 text-sm font-bold text-gray-400 flex items-center gap-2 tracking-wide uppercase">
