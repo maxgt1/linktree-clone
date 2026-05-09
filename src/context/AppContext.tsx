@@ -34,6 +34,8 @@ interface AppContextType {
   updateLink: (id: string, updates: Partial<Link>) => void;
   addLink: () => void;
   deleteLink: (id: string) => void;
+  saveLinks: () => Promise<void>;
+  saving: boolean;
   updateProfile: (updates: Partial<ProfileData>) => void;
   updateSocial: (platform: string, updates: Partial<SocialLink>) => void;
   setTheme: (theme: string) => void;
@@ -81,49 +83,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   }, []);
 
-  const updateLink = async (id: string, updates: Partial<Link>) => {
+  const [saving, setSaving] = useState(false);
+
+  const updateLink = (id: string, updates: Partial<Link>) => {
     setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
-    if (!pb.authStore.isValid) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data: Record<string, any> = {};
-    if ('title' in updates) data.title = updates.title;
-    if ('url' in updates) data.url = updates.url;
-    if ('isActive' in updates) data.is_active = updates.isActive;
-    try {
-      await pb.collection('links').update(id, data);
-    } catch {
-      fetchLinks();
-    }
   };
 
-  const addLink = async () => {
-    if (!pb.authStore.isValid) return;
-    try {
-      const record = await pb.collection('links').create({
-        title: 'Nuevo Enlace',
-        url: 'https://',
-        is_active: true,
-        user: pb.authStore.record?.id,
-      });
-      const newLink: Link = {
-        id: record.id,
-        title: record.title,
-        url: record.url,
-        isActive: record.is_active,
-      };
-      setLinks(prev => [newLink, ...prev]);
-    } catch {
-      // silent
-    }
+  const addLink = () => {
+    const newLink: Link = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: 'Nuevo Enlace',
+      url: 'https://ejemplo.com',
+      isActive: true,
+    };
+    setLinks(prev => [newLink, ...prev]);
   };
 
-  const deleteLink = async (id: string) => {
+  const deleteLink = (id: string) => {
     setLinks(prev => prev.filter(link => link.id !== id));
+  };
+
+  const saveLinks = async () => {
     if (!pb.authStore.isValid) return;
+    setSaving(true);
     try {
-      await pb.collection('links').delete(id);
-    } catch {
-      fetchLinks();
+      const userId = pb.authStore.record?.id;
+      const existing = await pb.collection('links').getFullList({ filter: `user = "${userId}"` });
+      for (const record of existing) {
+        await pb.collection('links').delete(record.id);
+      }
+      for (const link of links) {
+        await pb.collection('links').create({
+          title: link.title,
+          url: link.url,
+          is_active: link.isActive,
+          user: userId,
+        });
+      }
+      await fetchLinks();
+    } catch (e) {
+      console.error('Failed to save links:', e);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -193,10 +194,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       theme,
       isLoggedIn,
       authLoading,
+      saving,
       user,
       updateLink, 
       addLink, 
       deleteLink, 
+      saveLinks,
       updateProfile,
       updateSocial,
       setTheme,
