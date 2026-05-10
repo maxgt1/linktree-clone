@@ -114,7 +114,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const savingRef = useRef(false);
   const [avatarFile, setAvatarFileState] = useState<File | null>(null);
 
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const pendingDuringSaveRef = useRef(false);
   const debounceDelayRef = useRef(1500);
   const [saveTrigger, setSaveTrigger] = useState(0);
