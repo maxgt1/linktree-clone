@@ -26,7 +26,7 @@ const Login = () => {
         await register(email, password, name);
       }
       navigate('/dashboard');
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof ClientResponseError) {
         setError(err.response?.message || err.message);
       } else if (err instanceof Error) {
@@ -38,7 +38,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-24">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -60,7 +60,6 @@ const Login = () => {
           <AnimatePresence mode="wait">
             {!isLogin && (
               <motion.div
-                key="name-field"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
@@ -74,7 +73,7 @@ const Login = () => {
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
-                    required={!isLogin}
+                    required
                   />
                 </div>
               </motion.div>
@@ -130,7 +129,7 @@ const Login = () => {
             className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {authLoading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <span>Cargando...</span>
             ) : (
               <>
                 <span>{isLogin ? 'Entrar' : 'Registrarse'}</span>
