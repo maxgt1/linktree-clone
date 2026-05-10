@@ -234,9 +234,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const updateLink = (id: string, updates: Partial<Link>) => {
     setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
-    if ('isActive' in updates && Object.keys(updates).length === 1) {
-      markDirty(true);
-    }
+    const soloToggle = 'isActive' in updates && Object.keys(updates).length === 1;
+    markDirty(soloToggle);
   };
 
   const addLink = (title: string, url: string) => {
@@ -258,22 +257,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     markDirty(true);
   };
 
-  const [links, setLinks] = useState<Link[]>([
-    { id: '1', pbId: null, title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
-    { id: '2', pbId: null, title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
-  ]);
+  const [links, setLinks] = useState<Link[]>([]);
 
   const [profile, setProfile] = useState<ProfileData>({
-    name: 'Alex Rivera',
-    bio: 'Diseñador UI/UX & Desarrollador Frontend apasionado por crear experiencias digitales hermosas.',
+    name: '',
+    bio: '',
     avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200'
   });
 
-  const [socials, setSocials] = useState<SocialLink[]>([
-    { platform: 'Instagram', url: '#', isActive: true },
-    { platform: 'Twitter', url: '#', isActive: true },
-    { platform: 'Github', url: '#', isActive: true },
-  ]);
+  const [socials, setSocials] = useState<SocialLink[]>([]);
 
   const updateProfile = (updates: Partial<ProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
@@ -323,19 +315,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setIsLoggedIn(false);
     setThemeState('light');
     setProfile({
-      name: 'Alex Rivera',
-      bio: 'Diseñador UI/UX & Desarrollador Frontend apasionado por crear experiencias digitales hermosas.',
+      name: '',
+      bio: '',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200',
     });
-    setSocials([
-      { platform: 'Instagram', url: '#', isActive: true },
-      { platform: 'Twitter', url: '#', isActive: true },
-      { platform: 'Github', url: '#', isActive: true },
-    ]);
-    setLinks([
-      { id: '1', pbId: null, title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
-      { id: '2', pbId: null, title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
-    ]);
+    setSocials([]);
+    setLinks([]);
     deletedPbIdsRef.current = [];
   };
 
@@ -355,6 +340,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       commitLink,
       addLink, 
       deleteLink, 
+      reorderLinks,
       updateProfile,
       updateSocial,
       setTheme,
