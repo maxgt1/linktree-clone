@@ -14,8 +14,6 @@ import {
   Share2,
   ExternalLink,
   Sparkles,
-  Save,
-  Loader2,
   Camera,
   Eye
 } from 'lucide-react';
@@ -23,7 +21,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, user, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving, setAvatarFile } = useAppContext();
+  const { links, profile, socials, theme, user, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saving, setAvatarFile } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -51,17 +49,6 @@ const Dashboard = () => {
     { id: 'ocean', name: 'Océano', bg: 'bg-[#e0f2f1]', card: 'bg-white' },
   ];
 
-  const handleSave = async () => {
-    try {
-      await saveLinks();
-      toast.success('¡Cambios guardados con éxito!', {
-        style: { borderRadius: '1rem', background: '#333', color: '#fff' },
-      });
-    } catch {
-      toast.error('Error al guardar.');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#fafafa] pt-24 pb-32 px-4">
       <Toaster position="bottom-center" />
@@ -81,9 +68,17 @@ const Dashboard = () => {
             {activeTab === 'links' && (
               <motion.div key="links" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
-                    <p className="text-gray-500 mt-1">Crea y organiza tus accesos directos.</p>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
+                      <p className="text-gray-500 mt-1">Crea y organiza tus accesos directos.</p>
+                    </div>
+                    {saving && (
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-full">
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+                        <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wider">Guardando</span>
+                      </div>
+                    )}
                   </div>
                   <button onClick={copyPublicUrl} className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl shadow-sm hover:bg-primary/90 transition-all active:scale-[0.98] font-semibold text-sm shrink-0">
                     <Share2 size={16} />
@@ -228,24 +223,7 @@ const Dashboard = () => {
 
       </div>
 
-      {/* Floating Save Bar - ADAPTADA PARA MÓVIL */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] w-[92%] sm:w-full sm:max-w-md">
-        <div className="bg-white/90 backdrop-blur-xl border border-gray-100 p-3 lg:p-4 rounded-[2rem] shadow-2xl flex items-center justify-between gap-4">
-          <div className="flex items-center space-x-3 ml-3 overflow-hidden">
-            <div className={`w-2 h-2 rounded-full shrink-0 ${saving ? 'bg-orange-400 animate-pulse' : 'bg-green-500'}`}></div>
-            <span className="text-xs lg:text-sm font-bold text-gray-500 truncate">
-              {saving ? 'Guardando...' : 'Cambios listos'}
-            </span>
-          </div>
-          <button 
-            onClick={handleSave} 
-            disabled={saving} 
-            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-white px-6 lg:px-8 py-3 rounded-2xl font-black flex items-center space-x-2 transition-all active:scale-95 shrink-0"
-          >
-            {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /><span className="text-sm lg:text-base">Guardar</span></>}
-          </button>
-        </div>
-      </div>
+
     </div>
   );
 };

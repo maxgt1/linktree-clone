@@ -1,11 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import pb from '@/lib/pocketbase';
 import type { RecordModel } from 'pocketbase';
 
 interface Link {
   id: string;
+  pbId: string | null;
   title: string;
   url: string;
   isActive: boolean;
@@ -30,14 +31,13 @@ interface AppContextType {
   theme: string;
   isLoggedIn: boolean;
   authLoading: boolean;
+  saving: boolean;
   user: RecordModel | null;
   avatarFile: File | null;
   setAvatarFile: (file: File | null) => void;
   updateLink: (id: string, updates: Partial<Link>) => void;
   addLink: () => void;
   deleteLink: (id: string) => void;
-  saveLinks: () => Promise<void>;
-  saving: boolean;
   updateProfile: (updates: Partial<ProfileData>) => void;
   updateSocial: (platform: string, updates: Partial<SocialLink>) => void;
   setTheme: (theme: string) => void;
@@ -52,7 +52,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<RecordModel | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
-  const [theme, setTheme] = useState('light');
+  const [theme, setThemeState] = useState('light');
 
   const fetchLinks = async () => {
     if (!pb.authStore.isValid) return;
@@ -60,6 +60,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
       setLinks(records.map(r => ({
         id: r.id,
+        pbId: r.id,
         title: r.title,
         url: r.url,
         isActive: r.is_active,
@@ -82,12 +83,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       bio: record.bio || '',
       avatarUrl: avatar,
     });
-    setTheme(record.theme || 'light');
+    setThemeState(record.theme || 'light');
     if (record.socials) {
       try {
         const parsed = typeof record.socials === 'string' ? JSON.parse(record.socials) : record.socials;
         setSocials(parsed);
-      } catch {}
+      } catch {
+        // ignore parse errors
+      }
     }
     fetchLinks();
   };
@@ -96,54 +99,75 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (pb.authStore.isValid) {
       loadUserData();
     }
-    const unsubscribe = pb.authStore.onChange((token, record) => {
+    const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (record) {
         loadUserData();
       }
     });
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const [saving, setSaving] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const savingRef = useRef(false);
+  const [avatarFile, setAvatarFileState] = useState<File | null>(null);
 
-  const updateLink = (id: string, updates: Partial<Link>) => {
-    setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const pendingDuringSaveRef = useRef(false);
+  const debounceDelayRef = useRef(1500);
+  const [saveTrigger, setSaveTrigger] = useState(0);
+  const deletedPbIdsRef = useRef<string[]>([]);
+
+  const markDirty = (inmediato = false) => {
+    if (savingRef.current) {
+      pendingDuringSaveRef.current = true;
+      return;
+    }
+    debounceDelayRef.current = inmediato ? 100 : 1500;
+    setSaveTrigger(v => v + 1);
   };
 
-  const addLink = () => {
-    const newLink: Link = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: 'Nuevo Enlace',
-      url: 'https://ejemplo.com',
-      isActive: true,
-    };
-    setLinks(prev => [newLink, ...prev]);
+  const setAvatarFile = (file: File | null) => {
+    setAvatarFileState(file);
+    if (file) markDirty(true);
   };
 
-  const deleteLink = (id: string) => {
-    setLinks(prev => prev.filter(link => link.id !== id));
-  };
-
-  const saveLinks = async () => {
-    if (!pb.authStore.isValid) return;
-    setSaving(true);
+  const performSave = async (): Promise<boolean> => {
+    if (!pb.authStore.isValid) return false;
     try {
       const userId = pb.authStore.record?.id;
-      const existing = await pb.collection('links').getFullList({ filter: `user = "${userId}"` });
-      for (const record of existing) {
-        await pb.collection('links').delete(record.id);
+
+      // 1. Delete removed links
+      const toDelete = [...deletedPbIdsRef.current];
+      deletedPbIdsRef.current = [];
+      for (const pbId of toDelete) {
+        try { await pb.collection('links').delete(pbId); } catch { /* already gone */ }
       }
+
+      // 2. Create new + update existing
+      const updatedLinks: Link[] = [];
       for (const link of links) {
-        await pb.collection('links').create({
-          title: link.title,
-          url: link.url,
-          is_active: link.isActive,
-          user: userId,
-        });
+        if (link.pbId === null) {
+          const record = await pb.collection('links').create({
+            title: link.title,
+            url: link.url,
+            is_active: link.isActive,
+            user: userId,
+          });
+          updatedLinks.push({ ...link, pbId: record.id, id: record.id });
+        } else {
+          await pb.collection('links').update(link.pbId, {
+            title: link.title,
+            url: link.url,
+            is_active: link.isActive,
+          });
+          updatedLinks.push(link);
+        }
       }
-      await fetchLinks();
-      const userData: Record<string, any> = {
+      setLinks(updatedLinks);
+
+      // 3. Update user record
+      const userData: Record<string, unknown> = {
         name: profile.name,
         bio: profile.bio,
         theme: theme,
@@ -153,24 +177,77 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         userData.avatar = avatarFile;
       }
       const updated = await pb.collection('users').update(userId, userData);
-      setAvatarFile(null);
+      setAvatarFileState(null);
       setProfile(prev => ({
         ...prev,
         avatarUrl: updated.avatar
           ? pb.files.getURL(updated, updated.avatar, { thumb: '200x200' })
           : prev.avatarUrl,
       }));
+
+      return true;
     } catch (e) {
-      console.error('Failed to save:', e);
-      throw e;
-    } finally {
-      setSaving(false);
+      console.error('Auto-save failed:', e);
+      return false;
     }
   };
 
+  useEffect(() => {
+    if (savingRef.current) return;
+
+    const delay = debounceDelayRef.current;
+    const timer = setTimeout(async () => {
+      savingRef.current = true;
+      setSaving(true);
+      pendingDuringSaveRef.current = false;
+
+      await performSave();
+
+      if (pendingDuringSaveRef.current) {
+        savingRef.current = false;
+        setSaving(false);
+        setSaveTrigger(v => v + 1);
+      } else {
+        savingRef.current = false;
+        setSaving(false);
+      }
+    }, delay);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveTrigger]);
+
+  const updateLink = (id: string, updates: Partial<Link>) => {
+    setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
+    if ('isActive' in updates && Object.keys(updates).length === 1) {
+      markDirty(true);
+    } else {
+      markDirty();
+    }
+  };
+
+  const addLink = () => {
+    const newLink: Link = {
+      id: Math.random().toString(36).substr(2, 9),
+      pbId: null,
+      title: 'Nuevo Enlace',
+      url: 'https://ejemplo.com',
+      isActive: true,
+    };
+    setLinks(prev => [newLink, ...prev]);
+    markDirty(true);
+  };
+
+  const deleteLink = (id: string) => {
+    const link = links.find(l => l.id === id);
+    if (link?.pbId) deletedPbIdsRef.current.push(link.pbId);
+    setLinks(prev => prev.filter(l => l.id !== id));
+    markDirty(true);
+  };
+
   const [links, setLinks] = useState<Link[]>([
-    { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
-    { id: '2', title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
+    { id: '1', pbId: null, title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
+    { id: '2', pbId: null, title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
   ]);
 
   const [profile, setProfile] = useState<ProfileData>({
@@ -187,10 +264,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = (updates: Partial<ProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
+    markDirty();
   };
 
   const updateSocial = (platform: string, updates: Partial<SocialLink>) => {
     setSocials(prev => prev.map(social => social.platform === platform ? { ...social, ...updates } : social));
+    if ('isActive' in updates && Object.keys(updates).length === 1) {
+      markDirty(true);
+    } else {
+      markDirty();
+    }
+  };
+
+  const setTheme = (t: string) => {
+    setThemeState(t);
+    markDirty(true);
   };
 
   const login = async (email: string, password: string) => {
@@ -220,7 +308,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     pb.authStore.clear();
     setUser(null);
     setIsLoggedIn(false);
-    setTheme('light');
+    setThemeState('light');
     setProfile({
       name: 'Alex Rivera',
       bio: 'Diseñador UI/UX & Desarrollador Frontend apasionado por crear experiencias digitales hermosas.',
@@ -232,9 +320,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       { platform: 'Github', url: '#', isActive: true },
     ]);
     setLinks([
-      { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
-      { id: '2', title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
+      { id: '1', pbId: null, title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
+      { id: '2', pbId: null, title: 'Último Artículo del Blog', url: 'https://example.com/blog', isActive: true },
     ]);
+    deletedPbIdsRef.current = [];
   };
 
   return (
@@ -252,7 +341,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       updateLink, 
       addLink, 
       deleteLink, 
-      saveLinks,
       updateProfile,
       updateSocial,
       setTheme,
