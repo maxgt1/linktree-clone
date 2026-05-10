@@ -38,7 +38,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex justify-center p-4 pt-12">
+    <div className="min-h-screen bg-gray-50 flex items-start justify-center p-4 pt-12">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
