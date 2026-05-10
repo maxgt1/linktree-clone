@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import pb from '@/lib/pocketbase';
 import type { RecordModel } from 'pocketbase';
 
@@ -36,9 +36,8 @@ interface AppContextType {
   updateLink: (id: string, updates: Partial<Link>) => void;
   addLink: () => void;
   deleteLink: (id: string) => void;
-  saveLinks: () => Promise<boolean>;
+  saveLinks: () => Promise<void>;
   saving: boolean;
-  dirty: boolean;
   updateProfile: (updates: Partial<ProfileData>) => void;
   updateSocial: (platform: string, updates: Partial<SocialLink>) => void;
   setTheme: (theme: string) => void;
@@ -53,22 +52,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<RecordModel | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
-  const [theme, setThemeState] = useState('light');
+  const [theme, setTheme] = useState('light');
 
   const fetchLinks = async () => {
     if (!pb.authStore.isValid) return;
     try {
       const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
-      const newLinks = records.map(r => ({
+      setLinks(records.map(r => ({
         id: r.id,
         title: r.title,
         url: r.url,
         isActive: r.is_active,
-      }));
-      console.log('[FETCHLINKS] loaded ' + newLinks.length + ' links from PB', JSON.stringify(newLinks));
-      setLinks(newLinks);
+      })));
     } catch {
-      console.log('[FETCHLINKS] error, setting empty');
       setLinks([]);
     }
   };
@@ -86,7 +82,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       bio: record.bio || '',
       avatarUrl: avatar,
     });
-    setThemeState(record.theme || 'light');
+    setTheme(record.theme || 'light');
     if (record.socials) {
       try {
         const parsed = typeof record.socials === 'string' ? JSON.parse(record.socials) : record.socials;
@@ -109,51 +105,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
-  const [avatarFile, setAvatarFileState] = useState<File | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dirtyGen = useRef(0);
-  const saveLinksRef = useRef<() => Promise<boolean>>(async () => false);
-
-  const doSaveAttempt = (gen: number) => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(async () => {
-      if (savingRef.current) {
-        console.log('[AUTOSAVE] savingRef true, retrying gen=' + gen);
-        doSaveAttempt(gen);
-        return;
-      }
-      console.log('[AUTOSAVE] firing saveLinks gen=' + gen + ' dirtyGen=' + dirtyGen.current);
-      const ok = await saveLinksRef.current();
-      console.log('[AUTOSAVE] saveLinks returned ok=' + ok + ' gen=' + gen + ' dirtyGen=' + dirtyGen.current);
-      if (ok && dirtyGen.current === gen) {
-        console.log('[AUTOSAVE] clearing dirty');
-        setDirty(false);
-      }
-    }, 2500);
-  };
-
-  const markDirty = () => {
-    dirtyGen.current++;
-    setDirty(true);
-    doSaveAttempt(dirtyGen.current);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, []);
-
-  const setAvatarFile = (file: File | null) => {
-    setAvatarFileState(file);
-    if (file) markDirty();
-  };
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   const updateLink = (id: string, updates: Partial<Link>) => {
     setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
-    markDirty();
   };
 
   const addLink = () => {
@@ -164,22 +119,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isActive: true,
     };
     setLinks(prev => [newLink, ...prev]);
-    markDirty();
   };
 
   const deleteLink = (id: string) => {
     setLinks(prev => prev.filter(link => link.id !== id));
-    markDirty();
   };
 
-  const saveLinks = async (): Promise<boolean> => {
-    if (!pb.authStore.isValid) { console.log('[SAVELINKS] invalid auth, skipping'); return false; }
-    if (savingRef.current) { console.log('[SAVELINKS] savingRef true, skipping'); return false; }
-    savingRef.current = true;
+  const saveLinks = async () => {
+    if (!pb.authStore.isValid) return;
     setSaving(true);
     try {
       const userId = pb.authStore.record?.id;
-      console.log('[SAVELINKS] starting save for user=' + userId + ' links=' + JSON.stringify(links.map(l => ({title: l.title, url: l.url}))));
       const existing = await pb.collection('links').getFullList({ filter: `user = "${userId}"` });
       for (const record of existing) {
         await pb.collection('links').delete(record.id);
@@ -192,6 +142,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           user: userId,
         });
       }
+      await fetchLinks();
       const userData: Record<string, any> = {
         name: profile.name,
         bio: profile.bio,
@@ -209,16 +160,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           ? pb.files.getURL(updated, updated.avatar, { thumb: '200x200' })
           : prev.avatarUrl,
       }));
-      return true;
     } catch (e) {
       console.error('Failed to save:', e);
-      return false;
+      throw e;
     } finally {
-      savingRef.current = false;
       setSaving(false);
     }
   };
-  saveLinksRef.current = saveLinks;
 
   const [links, setLinks] = useState<Link[]>([
     { id: '1', title: 'Mi Portafolio Web', url: 'https://example.com', isActive: true },
@@ -239,12 +187,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const updateProfile = (updates: Partial<ProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
-    markDirty();
   };
 
   const updateSocial = (platform: string, updates: Partial<SocialLink>) => {
     setSocials(prev => prev.map(social => social.platform === platform ? { ...social, ...updates } : social));
-    markDirty();
   };
 
   const login = async (email: string, password: string) => {
@@ -270,16 +216,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const setTheme = (t: string) => {
-    setThemeState(t);
-    markDirty();
-  };
-
   const logout = async () => {
     pb.authStore.clear();
     setUser(null);
     setIsLoggedIn(false);
-    setThemeState('light');
+    setTheme('light');
     setProfile({
       name: 'Alex Rivera',
       bio: 'Diseñador UI/UX & Desarrollador Frontend apasionado por crear experiencias digitales hermosas.',
@@ -305,7 +246,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isLoggedIn,
       authLoading,
       saving,
-      dirty,
       user,
       avatarFile,
       setAvatarFile,
