@@ -1,75 +1,20 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://api.dicebear.com/7.x/icons/svg?seed=Link&icon=link" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>dyad-generated-app</title>
+    <meta name="theme-color" content="#6366f1" />
+    <meta name="description" content="Crea tu perfil de enlaces personalizado en segundos con LinkFlow." />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/icons/svg?seed=Link&icon=link" />
+    
+    <title>LinkFlow | Tu Bio Link Personalizado</title>
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      window.addEventListener("message", function (event) {
-        if (event.data && event.data.type === "dyad-take-screenshot") {
-          var requestId = event.data.requestId;
-          var element = document.getElementById("root");
-
-          if (!element) {
-            window.postMessage(
-              {
-                type: "dyad-screenshot-response",
-                requestId: requestId,
-                success: false,
-                error: "Root element not found",
-              },
-              "*",
-            );
-            return;
-          }
-
-          try {
-            var canvas = document.createElement("canvas");
-            canvas.width = element.offsetWidth || 800;
-            canvas.height = element.offsetHeight || 600;
-            var ctx = canvas.getContext("2d");
-
-            if (ctx) {
-              ctx.fillStyle = "#f0f0f0";
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.fillStyle = "#333";
-              ctx.font = "14px Arial";
-              ctx.fillText(
-                "Screenshot captured at " + new Date().toLocaleTimeString(),
-                20,
-                30,
-              );
-            }
-
-            var dataUrl = canvas.toDataURL("image/png");
-
-            window.postMessage(
-              {
-                type: "dyad-screenshot-response",
-                requestId: requestId,
-                success: true,
-                dataUrl: dataUrl,
-              },
-              "*",
-            );
-          } catch (err) {
-            window.postMessage(
-              {
-                type: "dyad-screenshot-response",
-                requestId: requestId,
-                success: false,
-                error: err.message || "Screenshot capture failed",
-              },
-              "*",
-            );
-          }
-        }
-      });
-    </script>
   </body>
 </html>
