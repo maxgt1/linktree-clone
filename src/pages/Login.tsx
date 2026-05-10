@@ -1,103 +1,155 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, Github, Mail, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '@/context/AppContext';
+import { ClientResponseError } from 'pocketbase';
 
 const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const { login, register, authLoading } = useAppContext();
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulación de login exitoso
-    navigate('/dashboard');
+    setError('');
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password, name);
+      }
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      if (err instanceof ClientResponseError) {
+        setError(err.response?.message || err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error al autenticar');
+      }
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] flex flex-col items-center px-6 pt-12 pb-20">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-24">
       <motion.div 
-        initial={{ opacity: 0, y: -20 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 sm:p-12"
       >
-        {/* Logo Section */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-xl shadow-primary/20 mb-4 transform rotate-3">
-            <Sparkles size={32} />
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-200">
+            <span className="text-white font-bold text-2xl">L</span>
           </div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">LinkFlow</h1>
-          <p className="text-gray-500 mt-2 font-medium">Gestiona tu presencia digital</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isLogin ? '¡Bienvenido!' : 'Crea tu cuenta'}
+          </h1>
+          <p className="text-gray-500">
+            {isLogin ? 'Nos alegra verte de nuevo' : 'Empieza a compartir tus enlaces hoy'}
+          </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white p-8 lg:p-10 rounded-[2.5rem] shadow-sm border border-gray-100">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">Bienvenido de nuevo</h2>
-            <p className="text-gray-400 text-sm mt-1">Ingresa tus credenciales para continuar</p>
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <AnimatePresence mode="wait">
+            {!isLogin && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Nombre completo</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input 
+                    type="text" 
+                    placeholder="Tu nombre"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                    required
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input 
-                  type="email" 
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@correo.com"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary/20 outline-none transition-all font-medium text-gray-800"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Contraseña</label>
-              <div className="relative">
-                <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                <input 
-                  type="password" 
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary/20 outline-none transition-all font-medium text-gray-800"
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit"
-              className="w-full bg-primary hover:bg-primary/90 text-white py-4 rounded-2xl font-black flex items-center justify-center space-x-2 transition-all active:scale-95 shadow-lg shadow-primary/10 mt-4"
-            >
-              <span>Entrar</span>
-              <ArrowRight size={20} />
-            </button>
-          </form>
-
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-100"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-4 text-gray-400 font-bold tracking-widest">O continúa con</span>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input 
+                type="email" 
+                placeholder="nombre@ejemplo.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                required
+              />
             </div>
           </div>
 
-          <button className="w-full bg-white border border-gray-100 hover:border-gray-200 text-gray-700 py-4 rounded-2xl font-bold flex items-center justify-center space-x-3 transition-all active:scale-95 shadow-sm">
-            <Github size={20} />
-            <span>GitHub</span>
+          <div>
+            <div className="flex justify-between mb-1.5 ml-1">
+              <label className="text-sm font-medium text-gray-700">Contraseña</label>
+              {isLogin && (
+                <button type="button" className="text-xs text-purple-600 hover:underline font-medium">
+                  ¿Olvidaste tu contraseña?
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input 
+                type="password" 
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl p-4 text-sm font-medium">
+              {error}
+            </div>
+          )}
+
+          <button 
+            type="submit"
+            disabled={authLoading}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {authLoading ? (
+              <span>Cargando...</span>
+            ) : (
+              <>
+                <span>{isLogin ? 'Entrar' : 'Registrarse'}</span>
+                <ArrowRight size={20} />
+              </>
+            )}
           </button>
-        </div>
+        </form>
 
-        <p className="text-center mt-8 text-gray-500 font-medium">
-          ¿No tienes una cuenta? {' '}
-          <Link to="/" className="text-primary font-black hover:underline underline-offset-4">Regístrate gratis</Link>
-        </p>
+        <div className="mt-8 text-center">
+          <p className="text-gray-500">
+            {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+            <button 
+              onClick={() => setIsLogin(!isLogin)}
+              className="ml-2 text-purple-600 font-bold hover:underline"
+            >
+              {isLogin ? 'Regístrate' : 'Inicia sesión'}
+            </button>
+          </p>
+        </div>
       </motion.div>
     </div>
   );
