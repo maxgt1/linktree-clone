@@ -23,7 +23,7 @@
 - **Auth via PocketBase**: `AppContext` has async `login(email, pass)`, `register(email, pass, name)`, `logout()` using `pb.collection('users')`. Token persisted automatically by SDK.
 - **PocketBase URL**: `pb` always uses `'/'` (Vite proxy in dev, Nginx proxy in prod). No `.env` needed — `VITE_POCKETBASE_URL` is unused.
 - **Nginx proxy**: `nginx.conf` proxies `/api/` → `https://pb2.mgtserver.es` to avoid CORS.
-- **`links` collection** in PocketBase: `title` (text), `url` (url), `is_active` (bool), `user` (relation → users). CRUD ruled by `user = @request.auth.id`.
+- **`links` collection** in PocketBase: `title` (text), `url` (url), `is_active` (bool), `sort` (number), `user` (relation → users). CRUD ruled by `user = @request.auth.id`. Se ordena por `sort` ascendente.
 - **`users` collection** has extra fields: `bio` (text), `theme` (text), `socials` (json) — added manually via PB admin API.
 - Links CRUD + profile/socials/theme are local-only in the Dashboard; "Guardar" button syncs all via `saveLinks()` (links: delete-all + recreate; user record: update name, bio, theme, socials, avatar).
 - `saveLinks()` is called from Dashboard's `handleSave` — no longer a mock timeout.

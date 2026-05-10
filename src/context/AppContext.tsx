@@ -65,9 +65,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [saveTrigger, setSaveTrigger] = useState(0);
   const deletedPbIdsRef = useRef<string[]>([]);
 
+  // Evita que onChange recargue datos en medio de una edicion
   const userKnownRef = useRef(false);
 
-  // Refs que siempre tienen el ultimo estado — usados por performSave
   const [links, setLinks] = useState<Link[]>([]);
   const linksRef = useRef(links);
   useEffect(() => { linksRef.current = links; }, [links]);
@@ -93,7 +93,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const fetchLinks = async () => {
     if (!pb.authStore.isValid) return;
     try {
-      const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
+      const records = await pb.collection('links').getFullList({
+        filter: `user = "${pb.authStore.record?.id}"`,
+        sort: 'sort',
+      });
       setLinks(records.map(r => ({
         id: crypto.randomUUID(),
         pbId: r.id,
@@ -179,28 +182,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userId = pb.authStore.record?.id;
 
-      // Seguridad: no eliminar si links esta vacio pero PB tiene registros
-      const existing = await pb.collection('links').getFullList({
-        filter: `user = "${userId}"`,
-      });
-      if (existing.length > 0 && linksRef.current.length === 0) {
-        console.warn('performSave: links vacio pero PB tiene registros — se omite delete');
-        // Aun asi guardamos perfil
-      } else {
-        for (const record of existing) {
-          try { await pb.collection('links').delete(record.id); } catch { /* skip */ }
-        }
+      // 1. Eliminar solo los links marcados como borrados
+      const toDelete = [...deletedPbIdsRef.current];
+      deletedPbIdsRef.current = [];
+      for (const pbId of toDelete) {
+        try { await pb.collection('links').delete(pbId); } catch { /* skip */ }
       }
 
+      // 2. Crear nuevos + actualizar existentes (con sort = indice)
       const pbIdUpdates: Array<{ oldId: string; newId: string }> = [];
-      for (const link of linksRef.current) {
-        const record = await pb.collection('links').create({
+      const currentLinks = linksRef.current;
+      for (let i = 0; i < currentLinks.length; i++) {
+        const link = currentLinks[i];
+        const data = {
           title: link.title,
           url: link.url,
           is_active: link.isActive,
+          sort: i,
           user: userId,
-        });
-        pbIdUpdates.push({ oldId: link.id, newId: record.id });
+        };
+        if (link.pbId === null) {
+          const record = await pb.collection('links').create(data);
+          pbIdUpdates.push({ oldId: link.id, newId: record.id });
+        } else {
+          await pb.collection('links').update(link.pbId, data);
+        }
       }
       if (pbIdUpdates.length > 0) {
         setLinks(prev => prev.map(l => {
@@ -209,6 +215,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }));
       }
 
+      // 3. Actualizar perfil de usuario
       const userData: Record<string, unknown> = {
         name: profileRef.current.name,
         bio: profileRef.current.bio,
@@ -227,11 +234,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           : prev.avatarUrl,
       }));
 
-      deletedPbIdsRef.current = [];
-
       return true;
     } catch (e) {
       console.error('Auto-save failed:', e);
+      // Re-agregar pbIds a deletedPbIdsRef si fallo
       return false;
     }
   };
@@ -312,6 +318,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAuthLoading(true);
     try {
       await pb.collection('users').authWithPassword(email, password);
+      setUser(pb.authStore.record);
+      setIsLoggedIn(true);
     } finally {
       setAuthLoading(false);
     }
@@ -322,6 +330,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       await pb.collection('users').create({ email, password, passwordConfirm: password, name });
       await pb.collection('users').authWithPassword(email, password);
+      setUser(pb.authStore.record);
+      setIsLoggedIn(true);
     } finally {
       setAuthLoading(false);
     }
