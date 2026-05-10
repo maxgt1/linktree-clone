@@ -110,8 +110,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const loadUserData = () => {
-    const record = pb.authStore.record;
+  const loadUserData = (freshRecord?: RecordModel | null) => {
+    const record = freshRecord || pb.authStore.record;
     if (!record) return;
     setUser(record);
     setIsLoggedIn(true);
@@ -139,10 +139,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (pb.authStore.isValid && !userKnownRef.current) {
       loadUserData();
       userKnownRef.current = true;
+      (async () => {
+        const id = pb.authStore.record?.id;
+        if (!id) return;
+        try {
+          const fresh = await pb.collection('users').getOne(id);
+          loadUserData(fresh);
+        } catch {
+          // keep cached data if fetch fails
+        }
+      })();
     }
     const unsubscribe = pb.authStore.onChange((_token, record) => {
       if (record && !savingRef.current) {
-        loadUserData();
+        loadUserData(record);
         userKnownRef.current = true;
       }
       if (!record) {

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useAppContext } from '@/context/AppContext';
+import { normalizeUrl } from '@/lib/utils';
 import { 
   Instagram, 
   Twitter, 
@@ -117,7 +118,7 @@ const Index = () => {
           {socials.filter(s => s.isActive && s.url).map((social) => (
             <a 
               key={social.platform}
-              href={social.url}
+              href={normalizeUrl(social.url)}
               target="_blank"
               rel="noopener noreferrer"
               className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 ${themeStyles.card} shadow-sm`}
@@ -137,7 +138,7 @@ const Index = () => {
               transition={{ delay: 0.4 + (index * 0.1) }}
             >
               <a
-                href={link.url}
+                href={normalizeUrl(link.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`group block p-5 rounded-[2rem] border transition-all duration-300 ${themeStyles.card} shadow-sm flex items-center justify-between`}
