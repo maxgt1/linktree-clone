@@ -56,6 +56,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [authLoading, setAuthLoading] = useState(false);
   const [theme, setThemeState] = useState('light');
 
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [avatarFile, setAvatarFileState] = useState<File | null>(null);
+
+  const pendingDuringSaveRef = useRef(false);
+  const debounceDelayRef = useRef(1500);
+  const [saveTrigger, setSaveTrigger] = useState(0);
+  const deletedPbIdsRef = useRef<string[]>([]);
+
+  const userKnownRef = useRef(false);
+
+  // Refs que siempre tienen el ultimo estado — usados por performSave
+  const [links, setLinks] = useState<Link[]>([]);
+  const linksRef = useRef(links);
+  useEffect(() => { linksRef.current = links; }, [links]);
+
+  const [profile, setProfile] = useState<ProfileData>({
+    name: '',
+    bio: '',
+    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200'
+  });
+  const profileRef = useRef(profile);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
+
+  const [socials, setSocials] = useState<SocialLink[]>([]);
+  const socialsRef = useRef(socials);
+  useEffect(() => { socialsRef.current = socials; }, [socials]);
+
+  const themeRef = useRef(theme);
+  useEffect(() => { themeRef.current = theme; }, [theme]);
+
+  const avatarFileRef = useRef(avatarFile);
+  useEffect(() => { avatarFileRef.current = avatarFile; }, [avatarFile]);
+
   const fetchLinks = async () => {
     if (!pb.authStore.isValid) return;
     try {
@@ -67,7 +101,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         url: r.url,
         isActive: r.is_active,
       })));
-    } catch {
+    } catch (e) {
+      console.error('fetchLinks error:', e);
       setLinks([]);
     }
   };
@@ -98,26 +133,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    if (pb.authStore.isValid) {
+    if (pb.authStore.isValid && !userKnownRef.current) {
       loadUserData();
+      userKnownRef.current = true;
     }
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      if (record && !savingRef.current) {
+      if (record && !savingRef.current && !userKnownRef.current) {
         loadUserData();
+        userKnownRef.current = true;
+      }
+      if (!record) {
+        userKnownRef.current = false;
       }
     });
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const [saving, setSaving] = useState(false);
-  const savingRef = useRef(false);
-  const [avatarFile, setAvatarFileState] = useState<File | null>(null);
-
-  const pendingDuringSaveRef = useRef(false);
-  const debounceDelayRef = useRef(1500);
-  const [saveTrigger, setSaveTrigger] = useState(0);
-  const deletedPbIdsRef = useRef<string[]>([]);
 
   const markDirty = (inmediato = false) => {
     if (savingRef.current) {
@@ -148,17 +179,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const userId = pb.authStore.record?.id;
 
-      // Delete all existing links (order will be recreated from local state)
+      // Seguridad: no eliminar si links esta vacio pero PB tiene registros
       const existing = await pb.collection('links').getFullList({
         filter: `user = "${userId}"`,
       });
-      for (const record of existing) {
-        try { await pb.collection('links').delete(record.id); } catch { /* skip */ }
+      if (existing.length > 0 && linksRef.current.length === 0) {
+        console.warn('performSave: links vacio pero PB tiene registros — se omite delete');
+        // Aun asi guardamos perfil
+      } else {
+        for (const record of existing) {
+          try { await pb.collection('links').delete(record.id); } catch { /* skip */ }
+        }
       }
 
-      // Recreate all links in order (preserves local order)
       const pbIdUpdates: Array<{ oldId: string; newId: string }> = [];
-      for (const link of links) {
+      for (const link of linksRef.current) {
         const record = await pb.collection('links').create({
           title: link.title,
           url: link.url,
@@ -174,15 +209,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }));
       }
 
-      // Update user record
       const userData: Record<string, unknown> = {
-        name: profile.name,
-        bio: profile.bio,
-        theme: theme,
-        socials: JSON.stringify(socials),
+        name: profileRef.current.name,
+        bio: profileRef.current.bio,
+        theme: themeRef.current,
+        socials: JSON.stringify(socialsRef.current),
       };
-      if (avatarFile) {
-        userData.avatar = avatarFile;
+      if (avatarFileRef.current) {
+        userData.avatar = avatarFileRef.current;
       }
       const updated = await pb.collection('users').update(userId, userData);
       setAvatarFileState(null);
@@ -224,7 +258,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, delay);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveTrigger]);
 
   const commitLink = (id: string) => {
@@ -250,21 +283,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteLink = (id: string) => {
-    const link = links.find(l => l.id === id);
+    const link = linksRef.current.find(l => l.id === id);
     if (link?.pbId) deletedPbIdsRef.current.push(link.pbId);
     setLinks(prev => prev.filter(l => l.id !== id));
     markDirty(true);
   };
-
-  const [links, setLinks] = useState<Link[]>([]);
-
-  const [profile, setProfile] = useState<ProfileData>({
-    name: '',
-    bio: '',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200&h=200'
-  });
-
-  const [socials, setSocials] = useState<SocialLink[]>([]);
 
   const updateProfile = (updates: Partial<ProfileData>) => {
     setProfile(prev => ({ ...prev, ...updates }));
@@ -289,8 +312,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAuthLoading(true);
     try {
       await pb.collection('users').authWithPassword(email, password);
-      setUser(pb.authStore.record);
-      setIsLoggedIn(true);
     } finally {
       setAuthLoading(false);
     }
@@ -301,8 +322,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       await pb.collection('users').create({ email, password, passwordConfirm: password, name });
       await pb.collection('users').authWithPassword(email, password);
-      setUser(pb.authStore.record);
-      setIsLoggedIn(true);
     } finally {
       setAuthLoading(false);
     }
@@ -310,6 +329,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     pb.authStore.clear();
+    userKnownRef.current = false;
     setUser(null);
     setIsLoggedIn(false);
     setThemeState('light');

@@ -184,24 +184,27 @@ const PublicProfile = () => {
 
         <div className="space-y-4">
           {links.map((link, index) => (
-            <motion.a
+            <motion.div
               key={link.id}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ delay: 0.4 + (index * 0.1) }}
-              className={`group block p-5 rounded-[2rem] border transition-all duration-300 ${themeStyles.card} shadow-sm flex items-center justify-between`}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                  <Share2 size={18} />
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group block p-5 rounded-[2rem] border transition-all duration-300 ${themeStyles.card} shadow-sm flex items-center justify-between`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Share2 size={18} />
+                  </div>
+                  <span className={`font-bold text-lg ${themeStyles.text}`}>{link.title}</span>
                 </div>
-                <span className={`font-bold text-lg ${themeStyles.text}`}>{link.title}</span>
-              </div>
-              <ExternalLink size={18} className="text-gray-300 group-hover:text-primary transition-colors" />
-            </motion.a>
+                <ExternalLink size={18} className="text-gray-300 group-hover:text-primary transition-colors" />
+              </a>
+            </motion.div>
           ))}
         </div>
 
