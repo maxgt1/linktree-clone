@@ -141,7 +141,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       userKnownRef.current = true;
     }
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      if (record && !savingRef.current && !userKnownRef.current) {
+      if (record && !savingRef.current) {
         loadUserData();
         userKnownRef.current = true;
       }

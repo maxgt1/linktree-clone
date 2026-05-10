@@ -25,10 +25,11 @@
 - **Nginx proxy**: `nginx.conf` proxies `/api/` → `https://pb2.mgtserver.es` to avoid CORS.
 - **`links` collection** in PocketBase: `title` (text), `url` (url), `is_active` (bool), `sort` (number), `user` (relation → users). CRUD ruled by `user = @request.auth.id`. Se ordena por `sort` ascendente.
 - **`users` collection** has extra fields: `bio` (text), `theme` (text), `socials` (json) — added manually via PB admin API.
-- Links CRUD + profile/socials/theme are local-only in the Dashboard; "Guardar" button syncs all via `saveLinks()` (links: delete-all + recreate; user record: update name, bio, theme, socials, avatar).
-- `saveLinks()` is called from Dashboard's `handleSave` — no longer a mock timeout.
-- On login/init: `loadUserData()` restores profile, theme, socials from user record + fetches links.
-- **Avatar upload**: Click avatar image in profile tab → file picker → shows preview → "Guardar" uploads file to PocketBase via multipart/form-data (`pb.collection('users').update`). Uses `pb.files.getURL()` for display. `avatarFile` state tracks pending file.
+- Auto-save mechanism: Any change (link CRUD, profile, socials, theme, avatar) calls `markDirty()` → debounced 1.5s → `performSave()`. No "Guardar" button — saves are automatic.
+- `performSave()` in AppContext: deletes links in `deletedPbIdsRef`, creates new links (pbId=null), updates existing links (pbId!=null) with sort=index, then updates user record (name, bio, theme, socials, avatar).
+- On login/init: `loadUserData()` restores profile, theme, socials from `pb.authStore.record` + fetches links from server via `fetchLinks()`.
+- **IMPORTANT — Cross-device sync bug (fixed)**: `onChange` handler had `!userKnownRef.current` guard that prevented `loadUserData()` from running on token auto-refresh. This caused stale theme/profiles/socials across devices. Links were always fresh via `fetchLinks()`. Fix removed the guard so `onChange` always calls `loadUserData()` with fresh server data.
+- **Avatar upload**: Click avatar image in profile tab → file picker → shows preview → auto-save uploads file via `pb.collection('users').update`. Uses `pb.files.getURL()` for display. `avatarFile` state tracks pending file.
 - SPA routing: `vercel.json` rewrites all paths to `index.html`
 
 ## PocketBase admin access
