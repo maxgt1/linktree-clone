@@ -101,7 +101,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       loadUserData();
     }
     const unsubscribe = pb.authStore.onChange((_token, record) => {
-      if (record) {
+      if (record && !savingRef.current) {
         loadUserData();
       }
     });
@@ -146,7 +146,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // 2. Create new + update existing
-      const updatedLinks: Link[] = [];
+      // IMPORTANT: No hacemos setLinks al final para no sobrescribir
+      // cambios que el usuario haya hecho durante el guardado.
+      // Solo actualizamos pbId en los links nuevos via callback.
+      const pbIdUpdates: Array<{ oldId: string; newId: string }> = [];
       for (const link of links) {
         if (link.pbId === null) {
           const record = await pb.collection('links').create({
@@ -155,17 +158,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             is_active: link.isActive,
             user: userId,
           });
-          updatedLinks.push({ ...link, pbId: record.id, id: record.id });
+          pbIdUpdates.push({ oldId: link.id, newId: record.id });
         } else {
           await pb.collection('links').update(link.pbId, {
             title: link.title,
             url: link.url,
             is_active: link.isActive,
           });
-          updatedLinks.push(link);
         }
       }
-      setLinks(updatedLinks);
+      if (pbIdUpdates.length > 0) {
+        setLinks(prev => prev.map(l => {
+          const u = pbIdUpdates.find(p => p.oldId === l.id);
+          return u ? { ...l, pbId: u.newId, id: u.newId } : l;
+        }));
+      }
 
       // 3. Update user record
       const userData: Record<string, unknown> = {
