@@ -21,10 +21,33 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, user, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saving, setAvatarFile } = useAppContext();
+  const { links, profile, socials, theme, user, updateLink, commitLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saving, setAvatarFile } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+
+  const handleCreateLink = () => {
+    addLink(newLinkTitle || 'Nuevo Enlace', newLinkUrl || 'https://ejemplo.com');
+    setShowCreateForm(false);
+    setNewLinkTitle('');
+    setNewLinkUrl('');
+  };
+
+  const handleCancelCreate = () => {
+    setShowCreateForm(false);
+    setNewLinkTitle('');
+    setNewLinkUrl('');
+  };
+
+  const handleLinkKeyDown = (e: React.KeyboardEvent, id: string) => {
+    if (e.key === 'Enter') {
+      commitLink(id);
+      (e.target as HTMLInputElement).blur();
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,20 +109,32 @@ const Dashboard = () => {
                   </button>
                 </div>
 
-                <button onClick={addLink} className="group w-full relative overflow-hidden bg-white hover:bg-primary border border-dashed border-gray-200 hover:border-primary p-6 lg:p-8 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center space-y-2">
-                  <div className="w-12 h-12 bg-primary/10 group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"><Plus size={24} className="text-primary group-hover:text-white" /></div>
-                  <span className="text-base font-bold text-gray-900 group-hover:text-white transition-colors">Añadir nuevo enlace</span>
-                </button>
+                {!showCreateForm ? (
+                  <button onClick={() => setShowCreateForm(true)} className="group w-full relative overflow-hidden bg-white hover:bg-primary border border-dashed border-gray-200 hover:border-primary p-6 lg:p-8 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center space-y-2">
+                    <div className="w-12 h-12 bg-primary/10 group-hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"><Plus size={24} className="text-primary group-hover:text-white" /></div>
+                    <span className="text-base font-bold text-gray-900 group-hover:text-white transition-colors">Añadir nuevo enlace</span>
+                  </button>
+                ) : (
+                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-4">
+                    <h3 className="text-lg font-black text-gray-900">Nuevo enlace</h3>
+                    <input type="text" value={newLinkTitle} onChange={(e) => setNewLinkTitle(e.target.value)} placeholder="Título" className="w-full p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary/20 outline-none transition-all font-bold text-gray-800" autoFocus />
+                    <input type="text" value={newLinkUrl} onChange={(e) => setNewLinkUrl(e.target.value)} placeholder="URL (https://...)" className="w-full p-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary/20 outline-none transition-all text-gray-600" />
+                    <div className="flex items-center gap-3 pt-2">
+                      <button onClick={handleCreateLink} className="bg-primary hover:bg-primary/90 text-white font-bold px-6 py-3 rounded-2xl transition-all active:scale-[0.98] text-sm flex-1">Añadir enlace</button>
+                      <button onClick={handleCancelCreate} className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold px-6 py-3 rounded-2xl transition-all active:scale-[0.98] text-sm">Cancelar</button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-3">
                   {links.map((link) => (
                     <motion.div key={link.id} layout className="bg-white p-5 lg:p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4 lg:gap-6 group hover:border-primary/30 transition-all">
                       <div className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-400 transition-colors shrink-0"><GripVertical size={20} /></div>
                       <div className="flex-1 grid gap-1 min-w-0">
-                        <input type="text" value={link.title} onChange={(e) => updateLink(link.id, { title: e.target.value })} className="w-full font-bold text-lg text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-primary/20 pb-0.5 transition-all truncate" placeholder="Título" />
+                        <input type="text" value={link.title} onChange={(e) => updateLink(link.id, { title: e.target.value })} onBlur={() => commitLink(link.id)} onKeyDown={(e) => handleLinkKeyDown(e, link.id)} className="w-full font-bold text-lg text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-primary/20 pb-0.5 transition-all truncate" placeholder="Título" />
                         <div className="flex items-center space-x-2 text-gray-400">
                           <ExternalLink size={12} className="shrink-0" />
-                          <input type="text" value={link.url} onChange={(e) => updateLink(link.id, { url: e.target.value })} className="w-full text-sm bg-transparent outline-none focus:text-primary transition-colors truncate" placeholder="URL" />
+                          <input type="text" value={link.url} onChange={(e) => updateLink(link.id, { url: e.target.value })} onBlur={() => commitLink(link.id)} onKeyDown={(e) => handleLinkKeyDown(e, link.id)} className="w-full text-sm bg-transparent outline-none focus:text-primary transition-colors truncate" placeholder="URL" />
                         </div>
                       </div>
                       <div className="flex items-center space-x-3 lg:space-x-4 border-l border-gray-50 pl-4 lg:pl-6 shrink-0">

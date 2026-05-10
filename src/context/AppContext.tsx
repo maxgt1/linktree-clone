@@ -36,7 +36,8 @@ interface AppContextType {
   avatarFile: File | null;
   setAvatarFile: (file: File | null) => void;
   updateLink: (id: string, updates: Partial<Link>) => void;
-  addLink: () => void;
+  commitLink: (id: string) => void;
+  addLink: (title: string, url: string) => void;
   deleteLink: (id: string) => void;
   updateProfile: (updates: Partial<ProfileData>) => void;
   updateSocial: (platform: string, updates: Partial<SocialLink>) => void;
@@ -217,21 +218,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveTrigger]);
 
+  const commitLink = (id: string) => {
+    markDirty();
+  };
+
   const updateLink = (id: string, updates: Partial<Link>) => {
     setLinks(prev => prev.map(link => link.id === id ? { ...link, ...updates } : link));
     if ('isActive' in updates && Object.keys(updates).length === 1) {
       markDirty(true);
-    } else {
-      markDirty();
     }
   };
 
-  const addLink = () => {
+  const addLink = (title: string, url: string) => {
     const newLink: Link = {
       id: Math.random().toString(36).substr(2, 9),
       pbId: null,
-      title: 'Nuevo Enlace',
-      url: 'https://ejemplo.com',
+      title,
+      url,
       isActive: true,
     };
     setLinks(prev => [newLink, ...prev]);
@@ -338,7 +341,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       user,
       avatarFile,
       setAvatarFile,
-      updateLink, 
+      updateLink,
+      commitLink,
       addLink, 
       deleteLink, 
       updateProfile,
