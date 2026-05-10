@@ -1,129 +1,154 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
-import { 
-  LogIn, 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  Sparkles,
-  Link as LinkIcon,
-  Loader2
-} from 'lucide-react';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
+import { ClientResponseError } from 'pocketbase';
 
 const Login = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAppContext();
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  const { login, register, authLoading } = useAppContext();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    
+    setError('');
     try {
-      await login(email, password);
-      toast.success('¡Bienvenido de nuevo!', {
-        icon: '👋',
-        style: { borderRadius: '1rem', background: '#333', color: '#fff' },
-      });
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await register(email, password, name);
+      }
       navigate('/dashboard');
-    } catch (error) {
-      toast.error('Credenciales incorrectas');
-    } finally {
-      setIsLoading(false);
+    } catch (err: unknown) {
+      if (err instanceof ClientResponseError) {
+        setError(err.response?.message || err.message);
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Error al autenticar');
+      }
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] pt-12 pb-12 px-4 flex flex-col items-center">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 pt-24">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 sm:p-12"
       >
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-[2rem] flex items-center justify-center shadow-xl shadow-primary/20 mb-4">
-            <LinkIcon className="text-white" size={32} />
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-200">
+            <span className="text-white font-bold text-2xl">L</span>
           </div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">LinkFlow</h1>
-          <p className="text-gray-500 mt-2 font-medium">Inicia sesión para gestionar tus enlaces</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {isLogin ? '¡Bienvenido!' : 'Crea tu cuenta'}
+          </h1>
+          <p className="text-gray-500">
+            {isLogin ? 'Nos alegra verte de nuevo' : 'Empieza a compartir tus enlaces hoy'}
+          </p>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white p-8 lg:p-10 rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
-            <Sparkles size={80} />
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <AnimatePresence mode="wait">
+            {!isLogin && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+              >
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Nombre completo</label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <input 
+                    type="text" 
+                    placeholder="Tu nombre"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                    required
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 ml-1">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input 
+                type="email" 
+                placeholder="nombre@ejemplo.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                required
+              />
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-            <div className="space-y-2">
-              <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
-              <div className="relative group">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary transition-colors" size={20} />
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary/20 outline-none transition-all font-bold text-gray-700"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between items-center ml-1">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Contraseña</label>
-                <a href="#" className="text-xs font-bold text-primary hover:underline">¿Olvidaste tu contraseña?</a>
-              </div>
-              <div className="relative group">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-primary transition-colors" size={20} />
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border border-transparent focus:bg-white focus:border-primary/20 outline-none transition-all font-bold text-gray-700"
-                  required
-                />
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary/90 text-white p-5 rounded-[1.5rem] font-black text-lg flex items-center justify-center space-x-3 transition-all active:scale-[0.98] shadow-lg shadow-primary/20 disabled:opacity-50"
-            >
-              {isLoading ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <>
-                  <span>Entrar</span>
-                  <ArrowRight size={20} />
-                </>
+          <div>
+            <div className="flex justify-between mb-1.5 ml-1">
+              <label className="text-sm font-medium text-gray-700">Contraseña</label>
+              {isLogin && (
+                <button type="button" className="text-xs text-purple-600 hover:underline font-medium">
+                  ¿Olvidaste tu contraseña?
+                </button>
               )}
-            </button>
-          </form>
-
-          <div className="mt-10 pt-8 border-t border-gray-50 text-center">
-            <p className="text-gray-500 font-medium">
-              ¿No tienes una cuenta? {' '}
-              <Link to="/register" className="text-primary font-black hover:underline">Regístrate gratis</Link>
-            </p>
+            </div>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input 
+                type="password" 
+                placeholder="••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all"
+                required
+              />
+            </div>
           </div>
-        </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-2xl p-4 text-sm font-medium">
+              {error}
+            </div>
+          )}
+
+          <button 
+            type="submit"
+            disabled={authLoading}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-2xl shadow-lg shadow-purple-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {authLoading ? (
+              <span>Cargando...</span>
+            ) : (
+              <>
+                <span>{isLogin ? 'Entrar' : 'Registrarse'}</span>
+                <ArrowRight size={20} />
+              </>
+            )}
+          </button>
+        </form>
 
         <div className="mt-8 text-center">
-          <Link to="/" className="text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors inline-flex items-center gap-2">
-            Volver al inicio
-          </Link>
+          <p className="text-gray-500">
+            {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
+            <button 
+              onClick={() => setIsLogin(!isLogin)}
+              className="ml-2 text-purple-600 font-bold hover:underline"
+            >
+              {isLogin ? 'Regístrate' : 'Inicia sesión'}
+            </button>
+          </p>
         </div>
       </motion.div>
     </div>
