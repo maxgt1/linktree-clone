@@ -37,6 +37,7 @@ interface AppContextType {
   setAvatarFile: (file: File | null) => void;
   updateLink: (id: string, updates: Partial<Link>) => void;
   commitLink: (id: string) => void;
+  reorderLinks: (startIndex: number, endIndex: number) => void;
   addLink: (title: string, url: string) => void;
   deleteLink: (id: string) => void;
   updateProfile: (updates: Partial<ProfileData>) => void;
@@ -60,7 +61,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     try {
       const records = await pb.collection('links').getFullList({ filter: `user = "${pb.authStore.record?.id}"` });
       setLinks(records.map(r => ({
-        id: r.id,
+        id: crypto.randomUUID(),
         pbId: r.id,
         title: r.title,
         url: r.url,
@@ -133,48 +134,48 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (file) markDirty(true);
   };
 
+  const reorderLinks = (startIndex: number, endIndex: number) => {
+    setLinks(prev => {
+      const result = Array.from(prev);
+      const [removed] = result.splice(startIndex, 1);
+      result.splice(endIndex, 0, removed);
+      return result;
+    });
+    markDirty(true);
+  };
+
   const performSave = async (): Promise<boolean> => {
     if (!pb.authStore.isValid) return false;
     try {
       const userId = pb.authStore.record?.id;
 
-      // 1. Delete removed links
-      const toDelete = [...deletedPbIdsRef.current];
-      deletedPbIdsRef.current = [];
-      for (const pbId of toDelete) {
-        try { await pb.collection('links').delete(pbId); } catch { /* already gone */ }
+      // Delete all existing links (order will be recreated from local state)
+      const existing = await pb.collection('links').getFullList({
+        filter: `user = "${userId}"`,
+      });
+      for (const record of existing) {
+        try { await pb.collection('links').delete(record.id); } catch { /* skip */ }
       }
 
-      // 2. Create new + update existing
-      // IMPORTANT: No hacemos setLinks al final para no sobrescribir
-      // cambios que el usuario haya hecho durante el guardado.
-      // Solo actualizamos pbId en los links nuevos via callback.
+      // Recreate all links in order (preserves local order)
       const pbIdUpdates: Array<{ oldId: string; newId: string }> = [];
       for (const link of links) {
-        if (link.pbId === null) {
-          const record = await pb.collection('links').create({
-            title: link.title,
-            url: link.url,
-            is_active: link.isActive,
-            user: userId,
-          });
-          pbIdUpdates.push({ oldId: link.id, newId: record.id });
-        } else {
-          await pb.collection('links').update(link.pbId, {
-            title: link.title,
-            url: link.url,
-            is_active: link.isActive,
-          });
-        }
+        const record = await pb.collection('links').create({
+          title: link.title,
+          url: link.url,
+          is_active: link.isActive,
+          user: userId,
+        });
+        pbIdUpdates.push({ oldId: link.id, newId: record.id });
       }
       if (pbIdUpdates.length > 0) {
         setLinks(prev => prev.map(l => {
           const u = pbIdUpdates.find(p => p.oldId === l.id);
-          return u ? { ...l, pbId: u.newId, id: u.newId } : l;
+          return u ? { ...l, pbId: u.newId } : l;
         }));
       }
 
-      // 3. Update user record
+      // Update user record
       const userData: Record<string, unknown> = {
         name: profile.name,
         bio: profile.bio,
@@ -192,6 +193,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           ? pb.files.getURL(updated, updated.avatar, { thumb: '200x200' })
           : prev.avatarUrl,
       }));
+
+      deletedPbIdsRef.current = [];
 
       return true;
     } catch (e) {
@@ -238,7 +241,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const addLink = (title: string, url: string) => {
     const newLink: Link = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       pbId: null,
       title,
       url,

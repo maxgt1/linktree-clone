@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useAppContext } from '@/context/AppContext';
+import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { 
   Plus, 
   Trash2, 
@@ -13,15 +14,13 @@ import {
   Palette, 
   Share2,
   ExternalLink,
-  Sparkles,
   Camera,
-  Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, user, updateLink, commitLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saving, setAvatarFile } = useAppContext();
+  const { links, profile, socials, theme, user, updateLink, commitLink, addLink, deleteLink, reorderLinks, updateProfile, updateSocial, setTheme, saving, setAvatarFile } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -63,6 +62,11 @@ const Dashboard = () => {
     toast.success('¡Enlace público copiado!', {
       style: { borderRadius: '1rem', background: '#333', color: '#fff' },
     });
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    reorderLinks(result.source.index, result.destination.index);
   };
 
   const themes = [
@@ -126,26 +130,41 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  {links.map((link) => (
-                    <motion.div key={link.id} layout className="bg-white p-5 lg:p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4 lg:gap-6 group hover:border-primary/30 transition-all">
-                      <div className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-400 transition-colors shrink-0"><GripVertical size={20} /></div>
-                      <div className="flex-1 grid gap-1 min-w-0">
-                        <input type="text" value={link.title} onChange={(e) => updateLink(link.id, { title: e.target.value })} onBlur={() => commitLink(link.id)} onKeyDown={(e) => handleLinkKeyDown(e, link.id)} className="w-full font-bold text-lg text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-primary/20 pb-0.5 transition-all truncate" placeholder="Título" />
-                        <div className="flex items-center space-x-2 text-gray-400">
-                          <ExternalLink size={12} className="shrink-0" />
-                          <input type="text" value={link.url} onChange={(e) => updateLink(link.id, { url: e.target.value })} onBlur={() => commitLink(link.id)} onKeyDown={(e) => handleLinkKeyDown(e, link.id)} className="w-full text-sm bg-transparent outline-none focus:text-primary transition-colors truncate" placeholder="URL" />
-                        </div>
+                <DragDropContext onDragEnd={onDragEnd}>
+                  <Droppable droppableId="links-list">
+                    {(provided) => (
+                      <div ref={provided.innerRef} {...provided.droppableProps} className="space-y-3">
+                        {links.map((link, index) => (
+                          <Draggable key={link.id} draggableId={link.id} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`bg-white p-5 lg:p-6 rounded-3xl shadow-sm border flex items-center gap-4 lg:gap-6 group hover:border-primary/30 transition-all ${snapshot.isDragging ? 'shadow-xl border-primary/30 rotate-[2deg]' : 'border-gray-100'}`}
+                              >
+                                <div {...provided.dragHandleProps} className="text-gray-300 cursor-grab active:cursor-grabbing hover:text-gray-400 transition-colors shrink-0"><GripVertical size={20} /></div>
+                                <div className="flex-1 grid gap-1 min-w-0">
+                                  <input type="text" value={link.title} onChange={(e) => updateLink(link.id, { title: e.target.value })} onBlur={() => commitLink(link.id)} onKeyDown={(e) => handleLinkKeyDown(e, link.id)} className="w-full font-bold text-lg text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-primary/20 pb-0.5 transition-all truncate" placeholder="Título" />
+                                  <div className="flex items-center space-x-2 text-gray-400">
+                                    <ExternalLink size={12} className="shrink-0" />
+                                    <input type="text" value={link.url} onChange={(e) => updateLink(link.id, { url: e.target.value })} onBlur={() => commitLink(link.id)} onKeyDown={(e) => handleLinkKeyDown(e, link.id)} className="w-full text-sm bg-transparent outline-none focus:text-primary transition-colors truncate" placeholder="URL" />
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-3 lg:space-x-4 border-l border-gray-50 pl-4 lg:pl-6 shrink-0">
+                                  <button onClick={() => updateLink(link.id, { isActive: !link.isActive })} className={`transition-all ${link.isActive ? 'text-primary scale-110' : 'text-gray-200'}`}>
+                                    {link.isActive ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                                  </button>
+                                  <button onClick={() => deleteLink(link.id)} className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"><Trash2 size={18} /></button>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
                       </div>
-                      <div className="flex items-center space-x-3 lg:space-x-4 border-l border-gray-50 pl-4 lg:pl-6 shrink-0">
-                        <button onClick={() => updateLink(link.id, { isActive: !link.isActive })} className={`transition-all ${link.isActive ? 'text-primary scale-110' : 'text-gray-200'}`}>
-                          {link.isActive ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
-                        </button>
-                        <button onClick={() => deleteLink(link.id)} className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"><Trash2 size={18} /></button>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
 
                 <div className="sm:hidden flex justify-center">
                   <button onClick={copyPublicUrl} className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-all active:scale-[0.98] font-semibold text-sm">
