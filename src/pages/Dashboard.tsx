@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
 
 const Dashboard = () => {
-  const { links, profile, socials, theme, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving, setAvatarFile } = useAppContext();
+  const { links, profile, socials, theme, user, updateLink, addLink, deleteLink, updateProfile, updateSocial, setTheme, saveLinks, saving, setAvatarFile } = useAppContext();
   const [activeTab, setActiveTab] = useState('links');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -34,6 +34,14 @@ const Dashboard = () => {
       setAvatarFile(file);
       setAvatarPreview(URL.createObjectURL(file));
     }
+  };
+
+  const publicUrl = user?.id ? `${window.location.origin}/u/${user.id}` : '';
+  const copyPublicUrl = () => {
+    navigator.clipboard.writeText(publicUrl);
+    toast.success('¡Enlace público copiado!', {
+      style: { borderRadius: '1rem', background: '#333', color: '#fff' },
+    });
   };
 
   const themes = [
@@ -72,9 +80,15 @@ const Dashboard = () => {
           <AnimatePresence mode="wait">
             {activeTab === 'links' && (
               <motion.div key="links" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <div>
-                  <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
-                  <p className="text-gray-500 mt-1">Crea y organiza tus accesos directos.</p>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-3xl font-black text-gray-900">Mis Enlaces</h2>
+                    <p className="text-gray-500 mt-1">Crea y organiza tus accesos directos.</p>
+                  </div>
+                  <button onClick={copyPublicUrl} className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl shadow-sm hover:bg-primary/90 transition-all active:scale-[0.98] font-semibold text-sm shrink-0">
+                    <Share2 size={16} />
+                    Compartir perfil
+                  </button>
                 </div>
 
                 <button onClick={addLink} className="group w-full relative overflow-hidden bg-white hover:bg-primary border border-dashed border-gray-200 hover:border-primary p-6 lg:p-8 rounded-3xl transition-all duration-300 flex flex-col items-center justify-center space-y-2">
@@ -101,6 +115,13 @@ const Dashboard = () => {
                       </div>
                     </motion.div>
                   ))}
+                </div>
+
+                <div className="sm:hidden flex justify-center">
+                  <button onClick={copyPublicUrl} className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-all active:scale-[0.98] font-semibold text-sm">
+                    <Share2 size={16} />
+                    Compartir perfil público
+                  </button>
                 </div>
               </motion.div>
             )}
